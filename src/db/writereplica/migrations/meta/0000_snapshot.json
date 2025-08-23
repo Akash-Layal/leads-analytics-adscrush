@@ -1,0 +1,84 @@
+{
+  "id": "00000000-0000-0000-0000-000000000000",
+  "prevId": "",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.Client": {
+      "name": "Client",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "('rec_'::text || (xata_private.xid())::text)"
+        },
+        "xata_version": {
+          "name": "xata_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_updatedat": {
+          "name": "xata_updatedat",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "_pgroll_new_Client_xata_id_key": {
+          "columns": [
+            "xata_id"
+          ],
+          "nullsNotDistinct": false,
+          "name": "_pgroll_new_Client_xata_id_key"
+        }
+      },
+      "checkConstraints": {
+        "Client_xata_id_length_xata_id": {
+          "name": "Client_xata_id_length_xata_id",
+          "value": "length(xata_id) < 256"
+        }
+      },
+      "policies": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "schemas": {},
+    "tables": {},
+    "columns": {}
+  },
+  "internal": {
+    "tables": {
+      "Client": {
+        "columns": {
+          "xata_id": {
+            "isDefaultAnExpression": true
+          }
+        }
+      }
+    }
+  }
+}
