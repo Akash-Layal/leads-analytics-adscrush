@@ -3,11 +3,12 @@
 import { IconChartBar, IconDashboard, IconDatabase, IconHelp, IconInnerShadowTop, IconSearch, IconSettings, IconUsers } from "@tabler/icons-react";
 import * as React from "react";
 
-import { NavDocuments } from "@/components/nav-documents";
-import { NavMain } from "@/components/nav-main";
-import { NavUser } from "@/components/nav-user";
+import { NavDocuments } from "@/components/layout/nav-documents";
+import { NavMain } from "@/components/layout/nav-main";
+import { NavUser } from "@/components/layout/nav-user";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import Link from "next/link";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const data = {
   user: {
@@ -66,7 +67,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton asChild className="data-[slot=sidebar-menu-button]:!p-1.5">
               <Link href="/dashboard">
-                <IconInnerShadowTop className="!size-5" />
+                <Avatar className="h-8 w-8 rounded-lg">
+                  <AvatarImage src="/logo.png" alt={data.user.name} />
+                  <AvatarFallback className="rounded-lg">AD</AvatarFallback>
+                </Avatar>
                 <span className="text-base font-semibold">Adscrush Pvt. Ltd.</span>
               </Link>
             </SidebarMenuButton>

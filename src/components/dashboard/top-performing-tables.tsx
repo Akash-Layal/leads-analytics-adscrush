@@ -35,15 +35,15 @@ interface TopPerformingTablesProps {
 // ---- Loading Skeleton Component ----
 function TopPerformingTablesSkeleton() {
   return (
-    <Card className="w-full border-0 shadow-lg bg-gradient-to-br from-white to-gray-50/50">
+    <Card className="w-full border-0 shadow-lg bg-gradient-to-br from-white to-gray-50/30">
       <CardHeader className="pb-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-br from-amber-100 to-amber-200 rounded-lg">
+            <div className="p-2 bg-gradient-to-br from-amber-50 to-amber-100 rounded-lg">
               <Trophy className="w-5 h-5 text-amber-600" />
             </div>
             <div>
-              <CardTitle className="text-xl font-bold text-gray-900">Top Performing Tables</CardTitle>
+              <CardTitle className="text-xl font-bold text-gray-900">Top Performing Products</CardTitle>
               <p className="text-sm text-gray-500 mt-1">Track your best performing lead sources</p>
             </div>
           </div>
@@ -338,15 +338,15 @@ export function TopPerformingTables({
   const topPerformer = getCurrentTopPerformer();
 
   return (
-    <Card className="w-full border-0 shadow-lg bg-gradient-to-br from-white to-gray-50/50">
+    <Card className="w-full border shadow-lg bg-gradient-to-br from-white to-gray-50/30">
       <CardHeader className="pb-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-br from-amber-100 to-amber-200 rounded-lg">
+            <div className="p-2 bg-gradient-to-br from-amber-50 to-amber-100 rounded-lg">
               <Trophy className="w-5 h-5 text-amber-600" />
             </div>
             <div>
-              <CardTitle className="text-xl font-bold text-gray-900">Top Performing Tables</CardTitle>
+              <CardTitle className="text-xl font-bold text-gray-900">Top Performing Products</CardTitle>
               <p className="text-sm text-gray-500 mt-1">Track your best performing lead sources</p>
             </div>
           </div>
@@ -362,7 +362,7 @@ export function TopPerformingTables({
         
         {/* Search Bar */}
         <div className="flex items-center gap-2 mt-4">
-          <div className="relative flex-1 max-w-md">
+          <div className="relative flex-1 w-full">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <Input
               placeholder="Search by product name..."
@@ -421,13 +421,13 @@ export function TopPerformingTables({
             </div>
 
             {/* Top Performer Highlight */}
-            <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-6">
+            <div className="bg-gradient-to-r from-amber-50/80 to-orange-50/60 border border-amber-200/50 rounded-xl p-6">
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-amber-100 rounded-full">
+                <div className="p-2 bg-amber-50 rounded-full">
                   <Trophy className="w-4 h-4 text-amber-600" />
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900">Top Performer</h3>
-                <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-amber-200">
+                <Badge variant="secondary" className="bg-amber-50 text-amber-700 border-amber-200/50">
                   #1
                 </Badge>
                 {topPerformer.previousCount && (
