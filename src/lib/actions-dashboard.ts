@@ -156,7 +156,7 @@ export async function getDashboardDataAction(): Promise<DashboardActionResult> {
         lastMonthTableCounts: lastMonthCountsResult,
         dailyStats: statsResult,
         totalTables: allTables.length,
-        totalRecords: countsResult.reduce((sum: number, table: any) => sum + table.count, 0),
+        totalRecords: countsResult.reduce((sum: number, table: { count: number }) => sum + table.count, 0),
         aggregatedStats: calculateAggregatedStats(statsResult)
       }
     };
@@ -549,6 +549,7 @@ async function getDailyStatsOptimized(tableMappings: Array<{ tableName: string; 
           )
         ]);
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const extractCount = (result: any): number => {
           let count = 0;
           if (Array.isArray(result) && result.length > 0) {
@@ -603,16 +604,16 @@ async function getDailyStatsOptimized(tableMappings: Array<{ tableName: string; 
 }
 
 // Helper function to calculate aggregated stats
-function calculateAggregatedStats(dailyStats: any[]) {
+function calculateAggregatedStats(dailyStats: Array<{ today: number; yesterday: number; thisMonth: number; lastMonth: number }>) {
   if (dailyStats.length === 0) {
     return { today: 0, yesterday: 0, thisMonth: 0, lastMonth: 0 };
   }
 
   return {
-    today: dailyStats.reduce((sum: number, table: any) => sum + table.today, 0),
-    yesterday: dailyStats.reduce((sum: number, table: any) => sum + table.yesterday, 0),
-    thisMonth: dailyStats.reduce((sum: number, table: any) => sum + table.thisMonth, 0),
-    lastMonth: dailyStats.reduce((sum: number, table: any) => sum + table.lastMonth, 0),
+    today: dailyStats.reduce((sum: number, table) => sum + table.today, 0),
+    yesterday: dailyStats.reduce((sum: number, table) => sum + table.yesterday, 0),
+    thisMonth: dailyStats.reduce((sum: number, table) => sum + table.thisMonth, 0),
+    lastMonth: dailyStats.reduce((sum: number, table) => sum + table.lastMonth, 0),
   };
 }
 

@@ -49,6 +49,7 @@ type TableDailyStats = {
 
 type TableDetail = {
   tableName: string;
+  customTableName: string | null;
   totalLeads: number;
   sizeMB: number;
   hasData: boolean;

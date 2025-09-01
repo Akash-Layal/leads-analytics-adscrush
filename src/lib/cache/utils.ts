@@ -2,6 +2,7 @@
 import { CacheStore, CacheOptions } from './store';
 
 // Cache decorator for functions
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function withCache<T extends (...args: any[]) => Promise<any>>(
   fn: T,
   cacheStore: CacheStore,
@@ -26,6 +27,7 @@ export function withCache<T extends (...args: any[]) => Promise<any>>(
 }
 
 // Generate cache key from function name and arguments
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function generateCacheKey(fnName: string, ...args: any[]): string {
   const argsStr = args
     .map(arg => {
@@ -40,6 +42,7 @@ export function generateCacheKey(fnName: string, ...args: any[]): string {
 }
 
 // Cache with automatic key generation
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function cacheResult<T extends (...args: any[]) => Promise<any>>(
   fn: T,
   cacheStore: CacheStore,

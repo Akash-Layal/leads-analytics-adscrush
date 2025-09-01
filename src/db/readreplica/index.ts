@@ -55,7 +55,6 @@ const pool = mysql.createPool({
   multipleStatements: false,
   dateStrings: true,
   charset: 'utf8mb4',
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : undefined,
 })
 
 // Test the connection once on startup

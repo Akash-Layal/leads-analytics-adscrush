@@ -224,7 +224,7 @@ export class CacheStore {
   }
 
   // Export cache for debugging
-  export(): Record<string, any> {
+  export(): Record<string, unknown> {
     return {
       store: Object.fromEntries(this.store),
       stats: Object.fromEntries(this.stats),

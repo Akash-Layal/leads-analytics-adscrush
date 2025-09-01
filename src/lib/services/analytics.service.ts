@@ -166,10 +166,10 @@ export const getAllTableCounts = cacheResult(
         const batchResults = await Promise.all(
           batch.map(async (mapping) => {
             const countResult = await getTableCount(mapping.tableName);
-            return { 
+                        return {
               tableName: mapping.tableName, 
               customTableName: mapping.customTableName,
-              count: countResult.success ? countResult.count : 0 
+              count: countResult.success ? (countResult as { count: number }).count : 0 
             };
           })
         );
@@ -223,8 +223,8 @@ export const getAllTableStats = cacheResult(
             return {
               tableName: mapping.tableName,
               customTableName: mapping.customTableName,
-              count: countResult.success ? countResult.count : 0,
-              sizeMB: sizeResult.success ? sizeResult.sizeMB : 0
+              count: countResult.success ? (countResult as { count: number }).count : 0,
+              sizeMB: sizeResult.success ? (sizeResult as { sizeMB: number }).sizeMB : 0
             };
           })
         );
@@ -331,7 +331,7 @@ export const getTableDailyStats = cacheResult(
       if (Array.isArray(totalCountResult) && totalCountResult.length > 0) {
         const dataRows = Array.isArray(totalCountResult[0]) ? totalCountResult[0] : totalCountResult;
         if (dataRows.length > 0 && dataRows[0] && typeof dataRows[0] === 'object' && 'count' in dataRows[0]) {
-          totalCount = Number((dataRows[0] as any).count) || 0;
+          totalCount = Number((dataRows[0] as { count: number }).count) || 0;
         }
       }
 
@@ -360,7 +360,7 @@ export const getTableDailyStats = cacheResult(
       if (Array.isArray(todayCountResult) && todayCountResult.length > 0) {
         const dataRows = Array.isArray(todayCountResult[0]) ? todayCountResult[0] : todayCountResult;
         if (dataRows.length > 0 && dataRows[0] && typeof dataRows[0] === 'object' && 'count' in dataRows[0]) {
-          todayCount = Number((dataRows[0] as any).count) || 0;
+          todayCount = Number((dataRows[0] as { count: number }).count) || 0;
         }
       }
 
@@ -376,7 +376,7 @@ export const getTableDailyStats = cacheResult(
       if (Array.isArray(yesterdayCountResult) && yesterdayCountResult.length > 0) {
         const dataRows = Array.isArray(yesterdayCountResult[0]) ? yesterdayCountResult[0] : yesterdayCountResult;
         if (dataRows.length > 0 && dataRows[0] && typeof dataRows[0] === 'object' && 'count' in dataRows[0]) {
-           yesterdayCount = Number((dataRows[0] as any).count) || 0;
+           yesterdayCount = Number((dataRows[0] as { count: number }).count) || 0;
         }
       }
 
