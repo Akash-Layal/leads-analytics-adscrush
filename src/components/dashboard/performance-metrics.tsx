@@ -46,8 +46,8 @@ export function PerformanceMetrics({
                   <Database className="h-6 w-6 text-white" />
                 </div>
                 <div className="text-2xl font-bold text-blue-700">{totalRecords.toLocaleString()}</div>
-                <p className="text-sm font-medium text-blue-600">Total Records</p>
-                <p className="text-xs text-blue-500 mt-1">Across {totalTables} tables</p>
+                <p className="text-sm font-medium text-blue-600">Total Leads</p>
+                <p className="text-xs text-blue-500 mt-1">Across {totalTables} products</p>
               </div>
 
               {/* Today's Performance */}

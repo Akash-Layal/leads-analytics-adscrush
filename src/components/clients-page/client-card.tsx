@@ -208,7 +208,7 @@ export function ClientCard({ client, onClientDeleted, onTableRemoved, onTableAss
             <div className="flex items-center justify-between mb-3">
               <h4 className="text-sm font-medium text-gray-700 flex items-center gap-2">
                 <Database className="h-4 w-4" />
-                Assigned Tables ({client.assignedTables.length})
+                Assigned Products ({client.assignedTables.length})
               </h4>
               <AssignTableDialog 
                 clientId={client.xataId} 

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { IconRefresh, IconLoader } from '@tabler/icons-react';
-import { clearCache } from '@/lib/table-counts';
+import { clearAllCachesAction } from '@/lib/actions-cache';
 
 interface CacheRefreshButtonProps {
   onRefresh?: () => void;
@@ -93,7 +93,7 @@ export function CacheRefreshButton({ onRefresh, className }: CacheRefreshButtonP
 
     try {
       setIsRefreshing(true);
-      await clearCache();
+      await clearAllCachesAction();
       
       // Set 1 minute cooldown (60 seconds)
       const cooldownDuration = 60;

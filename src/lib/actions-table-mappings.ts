@@ -1,8 +1,7 @@
 'use server';
 
 import { db } from "@/db/writereplica";
-import { tableMapping, client } from "@/db/writereplica/schema";
-import { sql } from "drizzle-orm";
+import { client, tableMapping } from "@/db/writereplica/schema";
 import { eq } from "drizzle-orm";
 
 // Get all table mappings with client information

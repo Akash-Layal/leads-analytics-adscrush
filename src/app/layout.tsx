@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import NextTopLoader from "nextjs-toploader";
+import { NuqsAdapter } from 'nuqs/adapters/next/app'
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,8 +31,10 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <NextTopLoader color="blue" height={4} showSpinner={false} />
-        <SidebarProvider>{children}</SidebarProvider>
+        <NuqsAdapter>
+          <NextTopLoader color="blue" height={4} showSpinner={false} />
+          <SidebarProvider>{children}</SidebarProvider>
+        </NuqsAdapter>
       </body>
     </html>
   );

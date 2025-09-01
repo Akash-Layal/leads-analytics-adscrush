@@ -22,15 +22,20 @@ export default async function ClientDetailsPage({ params }: ClientDetailsPagePro
       notFound();
     }
 
-    const { client, tableCounts, totalCount, dailyStats } = result.data;
+    const { client, tableCounts, totalCount, dailyStats, tableDetails, summary } = result.data;
+
+    // The client object already contains assignedTables
+    const clientWithTables = client;
 
     return (
       <Suspense fallback={<ClientDetailsLoading />}>
         <ClientDetailsContent
-          client={client}
+          client={clientWithTables}
           tableCounts={tableCounts}
           totalCount={totalCount}
           dailyStats={dailyStats}
+          tableDetails={tableDetails}
+          summary={summary}
         />
       </Suspense>
     );

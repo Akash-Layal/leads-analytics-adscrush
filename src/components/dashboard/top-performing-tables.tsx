@@ -1,176 +1,551 @@
 "use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BarChart3, FileText } from "lucide-react";
-import { useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
+import { BarChart3, Download, Eye, Search, Target, TrendingUp, Trophy, X, Zap } from "lucide-react";
+import React from "react";
+import { CalendarDateRangePicker } from "../date-range-picker";
+import { getTableCountsWithDateRangeAction } from "@/lib/actions-analytics";
+import { convertDateRangeToIST } from "@/lib/helpers/date";
 
-interface TableCount {
+
+// ---- Types ----
+type TableCount = {
   tableName: string;
+  displayName: string;
   count: number;
-}
+  previousCount?: number; // For growth calculation
+  target?: number; // For target comparison
+};
 
 interface TopPerformingTablesProps {
   tableCounts: TableCount[];
-  todayTableCounts?: TableCount[]; // Optional today's data
-  yesterdayTableCounts?: TableCount[]; // Optional yesterday's data
-  last7DaysTableCounts?: TableCount[]; // Optional last 7 days data
+  totalLeads?: number;
+  averageGrowth?: number;
+  isLoading?: boolean;
+  searchQuery?: string;
+  onSearchChange?: (query: string) => void;
+  onDateRangeChange?: (from?: Date, to?: Date) => void;
 }
 
-export function TopPerformingTables({ tableCounts, todayTableCounts, yesterdayTableCounts, last7DaysTableCounts }: TopPerformingTablesProps) {
-  const [timeRange, setTimeRange] = useState<"today" | "yesterday" | "last7Days" | "allTime">("today");
-
-  const currentData = timeRange === "today" ? (todayTableCounts || []) : 
-                     timeRange === "yesterday" ? (yesterdayTableCounts || []) : 
-                     timeRange === "last7Days" ? (last7DaysTableCounts || []) :
-                     tableCounts;
-  const sortedTables = currentData
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 10);
-
-  const todayTopPerformer = todayTableCounts?.[0];
-  const yesterdayTopPerformer = yesterdayTableCounts?.[0];
-  const last7DaysTopPerformer = last7DaysTableCounts?.[0];
-
+// ---- Loading Skeleton Component ----
+function TopPerformingTablesSkeleton() {
   return (
-    <div className="mb-8">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-2">
-          <FileText className="h-6 w-6 text-purple-600" />
-          <h2 className="text-2xl font-bold text-gray-900">Top Performing Tables</h2>
+    <Card className="w-full border-0 shadow-lg bg-gradient-to-br from-white to-gray-50/50">
+      <CardHeader className="pb-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-gradient-to-br from-amber-100 to-amber-200 rounded-lg">
+              <Trophy className="w-5 h-5 text-amber-600" />
+            </div>
+            <div>
+              <CardTitle className="text-xl font-bold text-gray-900">Top Performing Tables</CardTitle>
+              <p className="text-sm text-gray-500 mt-1">Track your best performing lead sources</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <CalendarDateRangePicker onDateRangeChange={() => {}} />
+            <Button variant="outline" size="sm" disabled className="border-gray-200">
+              <Download className="w-4 h-4 mr-2" />
+              Export
+            </Button>
+          </div>
         </div>
-        
-        <Select value={timeRange} onValueChange={(value: "today" | "yesterday" | "last7Days" | "allTime") => setTimeRange(value)}>
-          <SelectTrigger className="w-40">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="today">Today</SelectItem>
-            <SelectItem value="yesterday">Yesterday</SelectItem>
-            <SelectItem value="last7Days">Last 7 Days</SelectItem>
-            <SelectItem value="allTime">All Time</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      </CardHeader>
 
-      {/* Today's Top Performer Highlight */}
-      {timeRange === "today" && todayTopPerformer && (
-        <Card className="mb-6 border-2 border-yellow-400 bg-gradient-to-r from-yellow-50 to-orange-50">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg text-yellow-800">🥇 Today&apos;s Top Performer</CardTitle>
-          </CardHeader>
-          <CardContent>
+      <CardContent className="pt-0">
+        <div className="space-y-6">
+          {/* Quick Stats Skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-white p-4 rounded-lg border border-gray-100">
+                <div className="flex items-center gap-2 mb-2">
+                  <Skeleton className="w-4 h-4 rounded" />
+                  <Skeleton className="h-4 w-20" />
+                </div>
+                <Skeleton className="h-8 w-16" />
+              </div>
+            ))}
+          </div>
+
+          {/* Top Performer Highlight Skeleton */}
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <Skeleton className="w-8 h-8 rounded-full" />
+              <Skeleton className="h-6 w-32" />
+              <Skeleton className="h-6 w-8" />
+            </div>
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-yellow-500 flex items-center justify-center text-white font-bold text-lg">
-                  1
-                </div>
-                <div>
-                  <span className="font-bold text-lg text-yellow-800">{todayTopPerformer.tableName}</span>
-                  <p className="text-sm text-yellow-700">Leading the charts today!</p>
-                </div>
+              <div>
+                <Skeleton className="h-8 w-48 mb-2" />
+                <Skeleton className="h-4 w-24 mb-4" />
+                <Skeleton className="h-4 w-32 mb-2" />
+                <Skeleton className="h-2 w-48" />
               </div>
               <div className="text-right">
-                <span className="text-3xl font-bold text-yellow-800">{todayTopPerformer.count.toLocaleString()}</span>
-                <p className="text-sm text-yellow-700">Leads today</p>
+                <Skeleton className="h-10 w-20 mb-2" />
+                <Skeleton className="h-4 w-24 mb-1" />
+                <Skeleton className="h-4 w-20" />
               </div>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          </div>
 
-      {/* Yesterday's Top Performer Highlight */}
-      {timeRange === "yesterday" && yesterdayTopPerformer && (
-        <Card className="mb-6 border-2 border-blue-400 bg-gradient-to-r from-blue-50 to-indigo-50">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg text-blue-800">🥇 Yesterday&apos;s Top Performer</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-lg">
-                  1
-                </div>
-                <div>
-                  <span className="font-bold text-lg text-blue-800">{yesterdayTopPerformer.tableName}</span>
-                  <p className="text-sm text-blue-700">Led the charts yesterday!</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <span className="text-3xl font-bold text-blue-800">{yesterdayTopPerformer.count.toLocaleString()}</span>
-                <p className="text-sm text-blue-700">Leads yesterday</p>
-              </div>
+          {/* All Tables List Skeleton */}
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <Skeleton className="w-4 h-4" />
+              <Skeleton className="h-6 w-48" />
             </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Last 7 Days Top Performer Highlight */}
-      {timeRange === "last7Days" && last7DaysTopPerformer && (
-        <Card className="mb-6 border-2 border-green-400 bg-gradient-to-r from-green-50 to-emerald-50">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg text-green-800">🥇 Last 7 Days Top Performer</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center text-white font-bold text-lg">
-                  1
-                </div>
-                <div>
-                  <span className="font-bold text-lg text-green-800">{last7DaysTopPerformer.tableName}</span>
-                  <p className="text-sm text-green-700">Leading the charts this week!</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <span className="text-3xl font-bold text-green-800">{last7DaysTopPerformer.count.toLocaleString()}</span>
-                <p className="text-sm text-green-700">Leads this week</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5" />
-            Table Performance Rankings
-          </CardTitle>
-          <CardDescription>Tables with the highest record counts</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {sortedTables.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">No data available</div>
-          ) : (
-            <div className="space-y-4">
-              {sortedTables.map((table, index) => (
-                <div key={table.tableName} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-4">
-                    <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${
-                        index === 0 ? "bg-yellow-500" : index === 1 ? "bg-gray-400" : index === 2 ? "bg-orange-500" : "bg-blue-500"
-                      }`}
-                    >
-                      {index + 1}
-                    </div>
+            <div className="space-y-3">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="flex items-center justify-between p-4 bg-white border border-gray-100 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="w-8 h-8 rounded-full" />
                     <div>
-                      <span className="font-medium text-sm">{table.tableName}</span>
-                      <p className="text-xs text-gray-500">
-                        {index === 0 ? "🥇 Top Performer" : index === 1 ? "🥈 Second Place" : index === 2 ? "🥉 Third Place" : "Ranked"}
-                      </p>
+                      <Skeleton className="h-5 w-32 mb-1" />
+                      <Skeleton className="h-4 w-24" />
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl font-bold">{table.count.toLocaleString()}</span>
-                    <span className="text-xs text-gray-500">Leads</span>
+                  <div className="flex items-center gap-3">
+                    <div className="text-right">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Skeleton className="w-4 h-4" />
+                        <Skeleton className="h-6 w-16" />
+                        <Skeleton className="h-5 w-12" />
+                      </div>
+                      <Skeleton className="h-4 w-20" />
+                    </div>
+                    <Skeleton className="w-8 h-8 rounded" />
                   </div>
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ---- Client Wrapper Component ----
+export function TopPerformingTablesClient({ 
+  initialTableCounts, 
+  initialTotalLeads = 0, 
+  initialAverageGrowth = 0 
+}: { 
+  initialTableCounts: TableCount[];
+  initialTotalLeads?: number;
+  initialAverageGrowth?: number;
+}) {
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [tableCounts, setTableCounts] = React.useState(initialTableCounts);
+  const [totalLeads, setTotalLeads] = React.useState(initialTotalLeads);
+  const [averageGrowth, setAverageGrowth] = React.useState(initialAverageGrowth);
+  const [isInitialized, setIsInitialized] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState("");
+
+  // Update data when initial props change (from server)
+  React.useEffect(() => {
+    setTableCounts(initialTableCounts);
+    setTotalLeads(initialTotalLeads);
+    setAverageGrowth(initialAverageGrowth);
+    setIsInitialized(true);
+  }, [initialTableCounts, initialTotalLeads, initialAverageGrowth]);
+
+  // Handle date range changes using server action
+  // Note: This could also be implemented using React.use for more advanced patterns
+  const handleDateRangeChange = React.useCallback(async (from?: Date, to?: Date) => {
+    if (!from || !to) {
+      // Reset to initial data if no date range
+      setTableCounts(initialTableCounts);
+      setTotalLeads(initialTotalLeads);
+      setAverageGrowth(initialAverageGrowth);
+      return;
+    }
+
+    setIsLoading(true);
+    
+    try {
+      // Convert dates to IST date strings using the helper function
+      const { date_from, date_to } = convertDateRangeToIST({ from, to });
+      
+      console.log('Date range change - IST dates:', { date_from, date_to });
+      
+      // Use server action to fetch new data
+      const result = await getTableCountsWithDateRangeAction(date_from || "", date_to || "");
+      
+      if (result.success) {
+        setTableCounts(result.tableCounts || []);
+        setTotalLeads(result.totalLeads || 0);
+        setAverageGrowth(result.averageGrowth || 0);
+      } else {
+        console.error('Failed to fetch table counts:', result.error);
+        // Fallback to initial data on error
+        setTableCounts(initialTableCounts);
+        setTotalLeads(initialTotalLeads);
+        setAverageGrowth(initialAverageGrowth);
+      }
+    } catch (error) {
+      console.error('Error fetching table counts:', error);
+      // Fallback to initial data on error
+      setTableCounts(initialTableCounts);
+      setTotalLeads(initialTotalLeads);
+      setAverageGrowth(initialAverageGrowth);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [initialTableCounts, initialTotalLeads, initialAverageGrowth]);
+
+  // Show skeleton while initializing or loading
+  if (!isInitialized || isLoading) {
+    return <TopPerformingTablesSkeleton />;
+  }
+
+  return (
+    <TopPerformingTables 
+      tableCounts={tableCounts}
+      totalLeads={totalLeads}
+      averageGrowth={averageGrowth}
+      isLoading={isLoading}
+      searchQuery={searchQuery}
+      onSearchChange={setSearchQuery}
+      onDateRangeChange={handleDateRangeChange}
+    />
+  );
+}
+
+// ---- Main Component ----
+export function TopPerformingTables({ 
+  tableCounts, 
+  totalLeads = 0, 
+  averageGrowth = 0, 
+  isLoading = false,
+  searchQuery = "",
+  onSearchChange,
+  onDateRangeChange
+}: TopPerformingTablesProps) {
+  // Show skeleton while loading
+  if (isLoading) {
+    return <TopPerformingTablesSkeleton />;
+  }
+
+  // ---- Filter Data by Search Query ----
+  const getCurrentData = (): TableCount[] => {
+    const data = tableCounts || [];
+    
+    if (!searchQuery.trim()) {
+      return data;
+    }
+    
+    const query = searchQuery.toLowerCase().trim();
+    return data.filter(table => 
+      table.displayName.toLowerCase().includes(query) ||
+      table.tableName.toLowerCase().includes(query)
+    );
+  };
+
+  const getCurrentTopPerformer = (): TableCount | null => {
+    const current = getCurrentData();
+    return current.length > 0 ? current[0] : null;
+  };
+
+  // ---- Helper functions ----
+  const calculateGrowth = (current: number, previous: number = 0): number => {
+    if (previous === 0) return 0;
+    return ((current - previous) / previous) * 100;
+  };
+
+  const getGrowthColor = (growth: number): string => {
+    if (growth > 0) return "text-green-600";
+    if (growth < 0) return "text-red-600";
+    return "text-gray-600";
+  };
+
+  const getGrowthIcon = (growth: number) => {
+    if (growth > 0) return <TrendingUp className="w-4 h-4 text-green-500" />;
+    if (growth < 0) return <TrendingUp className="w-4 h-4 text-red-500 rotate-180" />;
+    return <BarChart3 className="w-4 h-4 text-gray-500" />;
+  };
+
+  const calculatePercentage = (count: number): number => {
+    if (totalLeads === 0) return 0;
+    return (count / totalLeads) * 100;
+  };
+
+  // ---- Render ----
+  const currentData = getCurrentData();
+
+  const exportData = () => {
+    // Helper function to escape CSV values
+    const escapeCsvValue = (value: string | number | null | undefined): string => {
+      if (value === null || value === undefined) return '';
+      const stringValue = String(value);
+      // If the value contains comma, newline, or quote, wrap it in quotes and escape internal quotes
+      if (stringValue.includes(',') || stringValue.includes('\n') || stringValue.includes('"')) {
+        return `"${stringValue.replace(/"/g, '""')}"`;
+      }
+      return stringValue;
+    };
+
+    // Prepare CSV headers
+    const headers = [
+      'Table Name',
+      'Display Name', 
+      'Leads Count',
+      'Percentage',
+      'Growth',
+      'Previous Count',
+      'Target'
+    ];
+
+    // Prepare CSV rows
+    const rows = currentData.map((table) => {
+      const growth = calculateGrowth(table.count, table.previousCount);
+      const percentage = calculatePercentage(table.count);
+      
+      return [
+        escapeCsvValue(table.tableName),
+        escapeCsvValue(table.displayName),
+        escapeCsvValue(table.count),
+        escapeCsvValue(`${percentage.toFixed(1)}%`),
+        escapeCsvValue(`${growth.toFixed(1)}%`),
+        escapeCsvValue(table.previousCount || 0),
+        escapeCsvValue(table.target || 'N/A')
+      ];
+    });
+
+    // Combine headers and rows
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n');
+
+    // Create and download the file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `top-performing-tables-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  };
+  const topPerformer = getCurrentTopPerformer();
+
+  return (
+    <Card className="w-full border-0 shadow-lg bg-gradient-to-br from-white to-gray-50/50">
+      <CardHeader className="pb-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-gradient-to-br from-amber-100 to-amber-200 rounded-lg">
+              <Trophy className="w-5 h-5 text-amber-600" />
+            </div>
+            <div>
+              <CardTitle className="text-xl font-bold text-gray-900">Top Performing Tables</CardTitle>
+              <p className="text-sm text-gray-500 mt-1">Track your best performing lead sources</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <CalendarDateRangePicker onDateRangeChange={onDateRangeChange} />
+            <Button variant="outline" size="sm" onClick={exportData} className="border-gray-200 hover:bg-gray-50">
+              <Download className="w-4 h-4 mr-2" />
+              Export
+            </Button>
+          </div>
+        </div>
+        
+        {/* Search Bar */}
+        <div className="flex items-center gap-2 mt-4">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Input
+              placeholder="Search by product name..."
+              value={searchQuery}
+              onChange={(e) => onSearchChange?.(e.target.value)}
+              className="pl-10 pr-10"
+            />
+            {searchQuery && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onSearchChange?.("")}
+                className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-gray-100"
+              >
+                <X className="w-3 h-3" />
+              </Button>
+            )}
+          </div>
+          {searchQuery && (
+            <div className="text-sm text-gray-500">
+              {getCurrentData().length} of {tableCounts.length} products
+            </div>
           )}
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </CardHeader>
+
+      <CardContent className="pt-0">
+        {topPerformer ? (
+          <div className="space-y-6">
+            {/* Quick Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-white p-4 rounded-lg border border-gray-100">
+                <div className="flex items-center gap-2 mb-2">
+                  <Target className="w-4 h-4 text-blue-600" />
+                  <span className="text-sm font-medium text-gray-600">Total Leads</span>
+                </div>
+                <p className="text-2xl font-bold text-gray-900">{totalLeads.toLocaleString()}</p>
+              </div>
+              <div className="bg-white p-4 rounded-lg border border-gray-100">
+                <div className="flex items-center gap-2 mb-2">
+                  <Zap className="w-4 h-4 text-green-600" />
+                  <span className="text-sm font-medium text-gray-600">Avg Growth</span>
+                </div>
+                <p className={`text-2xl font-bold ${getGrowthColor(averageGrowth)}`}>
+                  {averageGrowth > 0 ? "+" : ""}
+                  {averageGrowth.toFixed(1)}%
+                </p>
+              </div>
+              <div className="bg-white p-4 rounded-lg border border-gray-100">
+                <div className="flex items-center gap-2 mb-2">
+                  <BarChart3 className="w-4 h-4 text-purple-600" />
+                  <span className="text-sm font-medium text-gray-600">Active Tables</span>
+                </div>
+                <p className="text-2xl font-bold text-gray-900">{currentData.length}</p>
+              </div>
+            </div>
+
+            {/* Top Performer Highlight */}
+            <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-amber-100 rounded-full">
+                  <Trophy className="w-4 h-4 text-amber-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">Top Performer</h3>
+                <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-amber-200">
+                  #1
+                </Badge>
+                {topPerformer.previousCount && (
+                  <Badge variant="outline" className={`${getGrowthColor(calculateGrowth(topPerformer.count, topPerformer.previousCount))}`}>
+                    {calculateGrowth(topPerformer.count, topPerformer.previousCount) > 0 ? "+" : ""}
+                    {calculateGrowth(topPerformer.count, topPerformer.previousCount).toFixed(1)}%
+                  </Badge>
+                )}
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">{topPerformer.displayName}</p>
+                  <p className="text-sm text-gray-600 mt-1">Lead source</p>
+                  {topPerformer.target && (
+                    <div className="mt-2">
+                      <div className="flex items-center justify-between text-sm mb-1">
+                        <span className="text-gray-600">Progress to target</span>
+                        <span className="font-medium">
+                          {topPerformer.count}/{topPerformer.target}
+                        </span>
+                      </div>
+                      <Progress value={(topPerformer.count / topPerformer.target) * 100} className="h-2" />
+                    </div>
+                  )}
+                </div>
+                <div className="text-right">
+                  <p className="text-3xl font-bold text-amber-600">{topPerformer.count.toLocaleString()}</p>
+                  <p className="text-sm text-gray-600">leads generated</p>
+                  <p className="text-sm text-gray-500">{calculatePercentage(topPerformer.count).toFixed(1)}% of total</p>
+                </div>
+              </div>
+            </div>
+
+            {/* All Tables List */}
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <BarChart3 className="w-4 h-4 text-gray-600" />
+                <h3 className="text-lg font-semibold text-gray-900">All Tables Performance</h3>
+              </div>
+
+              <div className="space-y-3">
+                {currentData.map((table, index) => {
+                  const growth = calculateGrowth(table.count, table.previousCount);
+                  const percentage = calculatePercentage(table.count);
+
+                  return (
+                    <div key={table.tableName} className="flex items-center justify-between p-4 bg-white border border-gray-100 rounded-lg hover:shadow-sm transition-shadow">
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full">
+                          <span className="text-sm font-medium text-gray-600">{index + 1}</span>
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">{table.displayName}</p>
+                          <p className="text-sm text-gray-500">Table: {table.tableName}</p>
+                          {table.target && (
+                            <div className="mt-1">
+                              <Progress value={(table.count / table.target) * 100} className="h-1 w-24" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="text-right">
+                          <div className="flex items-center gap-2">
+                            {getGrowthIcon(growth)}
+                            <span className="text-lg font-semibold text-gray-900">{table.count.toLocaleString()}</span>
+                            <Badge variant="outline" className="text-xs">
+                              {percentage.toFixed(1)}%
+                            </Badge>
+                          </div>
+                          {table.previousCount && (
+                            <p className={`text-sm ${getGrowthColor(growth)}`}>
+                              {growth > 0 ? "+" : ""}
+                              {growth.toFixed(1)}% vs previous
+                            </p>
+                          )}
+                        </div>
+                        <Button variant="ghost" size="sm" className="p-1">
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <div className="p-4 bg-gray-100 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+              {searchQuery ? (
+                <Search className="w-8 h-8 text-gray-400" />
+              ) : (
+                <BarChart3 className="w-8 h-8 text-gray-400" />
+              )}
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              {searchQuery ? "No Products Found" : "No Data Available"}
+            </h3>
+            <p className="text-sm text-gray-500">
+              {searchQuery 
+                ? `No products match "${searchQuery}". Try a different search term.`
+                : "Select a different date range to view performance data."
+              }
+            </p>
+            {searchQuery && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onSearchChange?.("")}
+                className="mt-4"
+              >
+                Clear Search
+              </Button>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

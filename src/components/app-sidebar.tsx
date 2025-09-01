@@ -1,15 +1,6 @@
 "use client";
 
-import {
-  IconChartBar,
-  IconDashboard,
-  IconDatabase,
-  IconHelp,
-  IconInnerShadowTop,
-  IconSearch,
-  IconSettings,
-  IconUsers
-} from "@tabler/icons-react";
+import { IconChartBar, IconDashboard, IconDatabase, IconHelp, IconInnerShadowTop, IconSearch, IconSettings, IconUsers } from "@tabler/icons-react";
 import * as React from "react";
 
 import { NavDocuments } from "@/components/nav-documents";
@@ -36,14 +27,14 @@ const data = {
       icon: IconUsers,
     },
     {
-      title: "Table Mappings",
-      url: "/table-mappings",
-      icon: IconDatabase,
-    },
-    {
       title: "Analytics",
       url: "/analytics",
       icon: IconChartBar,
+    },
+    {
+      title: "Products Mappings",
+      url: "/products-mappings",
+      icon: IconDatabase,
     },
   ],
 

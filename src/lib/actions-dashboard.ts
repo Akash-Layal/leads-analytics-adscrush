@@ -2,8 +2,8 @@
 
 import { db as dbReadReplica } from "@/db/readreplica";
 import { db as dbWriteReplica } from "@/db/writereplica";
-import { client } from "@/db/writereplica/schema";
-import { desc } from "drizzle-orm";
+import { client, tableMapping } from "@/db/writereplica/schema";
+import { desc, eq } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 
 // TypeScript interfaces for dashboard data
@@ -20,22 +20,37 @@ export interface DashboardData {
   }>;
   tableCounts: Array<{
     tableName: string;
+    customTableName: string | null;
     count: number;
   }>;
   todayTableCounts: Array<{
     tableName: string;
+    customTableName: string | null;
     count: number;
   }>;
   yesterdayTableCounts: Array<{
     tableName: string;
+    customTableName: string | null;
     count: number;
   }>;
   last7DaysTableCounts: Array<{
     tableName: string;
+    customTableName: string | null;
+    count: number;
+  }>;
+  thisMonthTableCounts: Array<{
+    tableName: string;
+    customTableName: string | null;
+    count: number;
+  }>;
+  lastMonthTableCounts: Array<{
+    tableName: string;
+    customTableName: string | null;
     count: number;
   }>;
   dailyStats: Array<{
     tableName: string;
+    customTableName: string | null;
     today: number;
     yesterday: number;
     thisMonth: number;
@@ -97,31 +112,36 @@ export async function getDashboardDataAction(): Promise<DashboardActionResult> {
 
   try {
     // Execute all queries in parallel for better performance
-    const [clientsResult, tablesResult] = await Promise.all([
+    const [clientsResult, tableMappingsResult] = await Promise.all([
       // Get all clients
       dbWriteReplica
         .select()
         .from(client)
         .orderBy(desc(client.xataCreatedat)),
       
-      // Get all available tables from read replica
-      dbReadReplica.execute(sql`SHOW TABLES`)
+      // Get all active table mappings with custom names
+      dbWriteReplica
+        .select({
+          tableName: tableMapping.tableName,
+          customTableName: tableMapping.customTableName,
+          isActive: tableMapping.isActive
+        })
+        .from(tableMapping)
+        .where(eq(tableMapping.isActive, "true"))
     ]);
 
-    // Parse tables result
-    const allTables: string[] = [];
-    if (Array.isArray(tablesResult) && tablesResult.length > 0) {
-      const tableRows = Array.isArray(tablesResult[0]) ? tablesResult[0] : tablesResult;
-      allTables.push(...tableRows.map((row: any) => Object.values(row)[0] as string));
-    }
+    // Extract active table names from mappings
+    const allTables = tableMappingsResult.map(mapping => mapping.tableName);
 
-    // Get table counts, today's counts, yesterday's counts, last 7 days counts, and daily stats in parallel
-    const [countsResult, todayCountsResult, yesterdayCountsResult, last7DaysCountsResult, statsResult] = await Promise.all([
-      getTableCountsOptimized(allTables),
-      getTodayTableCountsOptimized(allTables),
-      getYesterdayTableCountsOptimized(allTables),
-      getLast7DaysTableCountsOptimized(allTables),
-      getDailyStatsOptimized(allTables)
+    // Get table counts, today's counts, yesterday's counts, last 7 days counts, monthly counts, and daily stats in parallel
+    const [countsResult, todayCountsResult, yesterdayCountsResult, last7DaysCountsResult, thisMonthCountsResult, lastMonthCountsResult, statsResult] = await Promise.all([
+      getTableCountsOptimized(tableMappingsResult),
+      getTodayTableCountsOptimized(tableMappingsResult),
+      getYesterdayTableCountsOptimized(tableMappingsResult),
+      getLast7DaysTableCountsOptimized(tableMappingsResult),
+      getThisMonthTableCountsOptimized(tableMappingsResult),
+      getLastMonthTableCountsOptimized(tableMappingsResult),
+      getDailyStatsOptimized(tableMappingsResult)
     ]);
 
     const dashboardData: DashboardResult = {
@@ -132,6 +152,8 @@ export async function getDashboardDataAction(): Promise<DashboardActionResult> {
         todayTableCounts: todayCountsResult,
         yesterdayTableCounts: yesterdayCountsResult,
         last7DaysTableCounts: last7DaysCountsResult,
+        thisMonthTableCounts: thisMonthCountsResult,
+        lastMonthTableCounts: lastMonthCountsResult,
         dailyStats: statsResult,
         totalTables: allTables.length,
         totalRecords: countsResult.reduce((sum: number, table: any) => sum + table.count, 0),
@@ -153,20 +175,20 @@ export async function getDashboardDataAction(): Promise<DashboardActionResult> {
 }
 
 // Optimized table counts function with batch processing
-async function getTableCountsOptimized(tableNames: string[]) {
-  if (tableNames.length === 0) return [];
+async function getTableCountsOptimized(tableMappings: Array<{ tableName: string; customTableName: string | null }>) {
+  if (tableMappings.length === 0) return [];
 
-  const counts: Array<{ tableName: string; count: number }> = [];
+  const counts: Array<{ tableName: string; customTableName: string | null; count: number }> = [];
   
   // Process tables in smaller batches to reduce connection pressure
   const batchSize = 1; // Reduced from 3 to prevent connection exhaustion
-  for (let i = 0; i < tableNames.length; i += batchSize) {
-    const batch = tableNames.slice(i, i + batchSize);
+  for (let i = 0; i < tableMappings.length; i += batchSize) {
+    const batch = tableMappings.slice(i, i + batchSize);
     
-    const batchPromises = batch.map(async (tableName) => {
+    const batchPromises = batch.map(async (mapping) => {
       try {
         const result = await dbReadReplica.execute(
-          sql`SELECT COUNT(*) as count FROM ${sql.identifier(tableName)}`
+          sql`SELECT COUNT(*) as count FROM ${sql.identifier(mapping.tableName)}`
         );
         
         let count = 0;
@@ -177,10 +199,10 @@ async function getTableCountsOptimized(tableNames: string[]) {
           }
         }
         
-        return { tableName, count };
+        return { tableName: mapping.tableName, customTableName: mapping.customTableName, count };
       } catch (error) {
-        console.error(`Error getting count for table ${tableName}:`, error);
-        return { tableName, count: 0 };
+        console.error(`Error getting count for table ${mapping.tableName}:`, error);
+        return { tableName: mapping.tableName, customTableName: mapping.customTableName, count: 0 };
       }
     });
 
@@ -188,7 +210,7 @@ async function getTableCountsOptimized(tableNames: string[]) {
     counts.push(...batchResults);
     
     // Add a longer delay between batches to prevent overwhelming the connection pool
-    if (i + batchSize < tableNames.length) {
+    if (i + batchSize < tableMappings.length) {
       await new Promise(resolve => setTimeout(resolve, 300));
     }
   }
@@ -197,26 +219,24 @@ async function getTableCountsOptimized(tableNames: string[]) {
 }
 
 // Function to get today's table counts
-async function getTodayTableCountsOptimized(tableNames: string[]) {
-  if (tableNames.length === 0) return [];
+async function getTodayTableCountsOptimized(tableMappings: Array<{ tableName: string; customTableName: string | null }>) {
+  if (tableMappings.length === 0) return [];
 
   const now = new Date();
-  const today = now.getDate().toString().padStart(2, '0');
-  const thisMonth = (now.getMonth() + 1).toString().padStart(2, '0');
-  const thisYear = now.getFullYear().toString();
-  const todayPattern = `${today}-${thisMonth}-${thisYear}%`;
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
 
-  const counts: Array<{ tableName: string; count: number }> = [];
+  const counts: Array<{ tableName: string; customTableName: string | null; count: number }> = [];
   
   // Process tables in smaller batches
   const batchSize = 1; // Reduced from 2 to prevent connection exhaustion
-  for (let i = 0; i < tableNames.length; i += batchSize) {
-    const batch = tableNames.slice(i, i + batchSize);
+  for (let i = 0; i < tableMappings.length; i += batchSize) {
+    const batch = tableMappings.slice(i, i + batchSize);
     
-    const batchPromises = batch.map(async (tableName) => {
+    const batchPromises = batch.map(async (mapping) => {
       try {
         const result = await dbReadReplica.execute(
-          sql`SELECT COUNT(*) as count FROM ${sql.identifier(tableName)} WHERE \`created at\` LIKE ${todayPattern}`
+          sql`SELECT COUNT(*) as count FROM ${sql.identifier(mapping.tableName)} WHERE created_at_ts >= ${today} AND created_at_ts < ${tomorrow}`
         );
         
         let count = 0;
@@ -227,10 +247,10 @@ async function getTodayTableCountsOptimized(tableNames: string[]) {
           }
         }
         
-        return { tableName, count };
+        return { tableName: mapping.tableName, customTableName: mapping.customTableName, count };
       } catch (error) {
-        console.error(`Error getting today's count for table ${tableName}:`, error);
-        return { tableName, count: 0 };
+        console.error(`Error getting today's count for table ${mapping.tableName}:`, error);
+        return { tableName: mapping.tableName, customTableName: mapping.customTableName, count: 0 };
       }
     });
 
@@ -238,7 +258,7 @@ async function getTodayTableCountsOptimized(tableNames: string[]) {
     counts.push(...batchResults);
     
     // Add a longer delay between batches
-    if (i + batchSize < tableNames.length) {
+    if (i + batchSize < tableMappings.length) {
       await new Promise(resolve => setTimeout(resolve, 300));
     }
   }
@@ -247,26 +267,24 @@ async function getTodayTableCountsOptimized(tableNames: string[]) {
 }
 
 // Function to get yesterday's table counts
-async function getYesterdayTableCountsOptimized(tableNames: string[]) {
-  if (tableNames.length === 0) return [];
+async function getYesterdayTableCountsOptimized(tableMappings: Array<{ tableName: string; customTableName: string | null }>) {
+  if (tableMappings.length === 0) return [];
 
   const now = new Date();
-  const yesterday = (now.getDate() - 1).toString().padStart(2, '0');
-  const thisMonth = (now.getMonth() + 1).toString().padStart(2, '0');
-  const thisYear = now.getFullYear().toString();
-  const yesterdayPattern = `${yesterday}-${thisMonth}-${thisYear}%`;
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
 
-  const counts: Array<{ tableName: string; count: number }> = [];
+  const counts: Array<{ tableName: string; customTableName: string | null; count: number }> = [];
   
   // Process tables in smaller batches
-  const batchSize = 1; // Reduced from 2 to prevent connection exhaustion
-  for (let i = 0; i < tableNames.length; i += batchSize) {
-    const batch = tableNames.slice(i, i + batchSize);
+  const batchSize = 1;
+  for (let i = 0; i < tableMappings.length; i += batchSize) {
+    const batch = tableMappings.slice(i, i + batchSize);
     
-    const batchPromises = batch.map(async (tableName) => {
+    const batchPromises = batch.map(async (mapping) => {
       try {
         const result = await dbReadReplica.execute(
-          sql`SELECT COUNT(*) as count FROM ${sql.identifier(tableName)} WHERE \`created at\` LIKE ${yesterdayPattern}`
+          sql`SELECT COUNT(*) as count FROM ${sql.identifier(mapping.tableName)} WHERE created_at_ts >= ${yesterday} AND created_at_ts < ${now}`
         );
         
         let count = 0;
@@ -277,18 +295,17 @@ async function getYesterdayTableCountsOptimized(tableNames: string[]) {
           }
         }
         
-        return { tableName, count };
+        return { tableName: mapping.tableName, customTableName: mapping.customTableName, count };
       } catch (error) {
-        console.error(`Error getting yesterday's count for table ${tableName}:`, error);
-        return { tableName, count: 0 };
+        console.error(`Error getting yesterday's count for table ${mapping.tableName}:`, error);
+        return { tableName: mapping.tableName, customTableName: mapping.customTableName, count: 0 };
       }
     });
 
     const batchResults = await Promise.all(batchPromises);
     counts.push(...batchResults);
     
-    // Add a longer delay between batches
-    if (i + batchSize < tableNames.length) {
+    if (i + batchSize < tableMappings.length) {
       await new Promise(resolve => setTimeout(resolve, 300));
     }
   }
@@ -297,63 +314,44 @@ async function getYesterdayTableCountsOptimized(tableNames: string[]) {
 }
 
 // Function to get last 7 days table counts
-async function getLast7DaysTableCountsOptimized(tableNames: string[]) {
-  if (tableNames.length === 0) return [];
+async function getLast7DaysTableCountsOptimized(tableMappings: Array<{ tableName: string; customTableName: string | null }>) {
+  if (tableMappings.length === 0) return [];
 
   const now = new Date();
-  const sevenDaysAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+  const sevenDaysAgo = new Date(now);
+  sevenDaysAgo.setDate(now.getDate() - 7);
+
+  const counts: Array<{ tableName: string; customTableName: string | null; count: number }> = [];
   
-  // Format dates for the pattern matching approach that works with the existing date format
-  // We'll check each day individually and sum them up, similar to how today and yesterday work
-  
-  const counts: Array<{ tableName: string; count: number }> = [];
-  
-  // Process tables in smaller batches
-  const batchSize = 1; // Reduced from 2 to prevent connection exhaustion
-  for (let i = 0; i < tableNames.length; i += batchSize) {
-    const batch = tableNames.slice(i, i + batchSize);
+  const batchSize = 1;
+  for (let i = 0; i < tableMappings.length; i += batchSize) {
+    const batch = tableMappings.slice(i, i + batchSize);
     
-    const batchPromises = batch.map(async (tableName) => {
+    const batchPromises = batch.map(async (mapping) => {
       try {
-        let totalCount = 0;
+        const result = await dbReadReplica.execute(
+          sql`SELECT COUNT(*) as count FROM ${sql.identifier(mapping.tableName)} WHERE created_at_ts >= ${sevenDaysAgo}`
+        );
         
-        // Check each of the last 7 days individually
-        for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
-          const checkDate = new Date(now.getTime() - (dayOffset * 24 * 60 * 60 * 1000));
-          const day = checkDate.getDate().toString().padStart(2, '0');
-          const month = (checkDate.getMonth() + 1).toString().padStart(2, '0');
-          const year = checkDate.getFullYear().toString();
-          const datePattern = `${day}-${month}-${year}%`;
-          
-          try {
-            const result = await dbReadReplica.execute(
-              sql`SELECT COUNT(*) as count FROM ${sql.identifier(tableName)} WHERE \`created at\` LIKE ${datePattern}`
-            );
-            
-            if (Array.isArray(result) && result.length > 0) {
-              const dataRows = Array.isArray(result[0]) ? result[0] : result;
-              if (dataRows.length > 0 && dataRows[0] && typeof dataRows[0] === 'object' && 'count' in dataRows[0]) {
-                totalCount += Number(dataRows[0].count) || 0;
-              }
-            }
-          } catch (dayError) {
-            // If one day fails, continue with other days
-            console.error(`Error getting count for ${datePattern} in table ${tableName}:`, dayError);
+        let count = 0;
+        if (Array.isArray(result) && result.length > 0) {
+          const dataRows = Array.isArray(result[0]) ? result[0] : result;
+          if (dataRows.length > 0 && dataRows[0] && typeof dataRows[0] === 'object' && 'count' in dataRows[0]) {
+            count = Number(dataRows[0].count) || 0;
           }
         }
         
-        return { tableName, count: totalCount };
+        return { tableName: mapping.tableName, customTableName: mapping.customTableName, count };
       } catch (error) {
-        console.error(`Error getting last 7 days count for table ${tableName}:`, error);
-        return { tableName, count: 0 };
+        console.error(`Error getting last 7 days count for table ${mapping.tableName}:`, error);
+        return { tableName: mapping.tableName, customTableName: mapping.customTableName, count: 0 };
       }
     });
 
     const batchResults = await Promise.all(batchPromises);
     counts.push(...batchResults);
     
-    // Add a longer delay between batches
-    if (i + batchSize < tableNames.length) {
+    if (i + batchSize < tableMappings.length) {
       await new Promise(resolve => setTimeout(resolve, 300));
     }
   }
@@ -361,20 +359,164 @@ async function getLast7DaysTableCountsOptimized(tableNames: string[]) {
   return counts;
 }
 
-// Optimized daily stats function with better date handling
-async function getDailyStatsOptimized(tableNames: string[]) {
-  if (tableNames.length === 0) return [];
+// Function to get this month's table counts
+async function getThisMonthTableCountsOptimized(tableMappings: Array<{ tableName: string; customTableName: string | null }>) {
+  if (tableMappings.length === 0) return [];
 
   const now = new Date();
-  const today = now.getDate().toString().padStart(2, '0');
-  const yesterday = (now.getDate() - 1).toString().padStart(2, '0');
-  const thisMonth = (now.getMonth() + 1).toString().padStart(2, '0');
-  const lastMonth = now.getMonth() === 0 ? '12' : (now.getMonth()).toString().padStart(2, '0');
-  const thisYear = now.getFullYear().toString();
-  const lastYear = now.getMonth() === 0 ? (now.getFullYear() - 1).toString() : thisYear;
+  const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  const tableStats: Array<{
+  const counts: Array<{ tableName: string; customTableName: string | null; count: number }> = [];
+  
+  const batchSize = 1;
+  for (let i = 0; i < tableMappings.length; i += batchSize) {
+    const batch = tableMappings.slice(i, i + batchSize);
+    
+    const batchPromises = batch.map(async (mapping) => {
+      try {
+        const result = await dbReadReplica.execute(
+          sql`SELECT COUNT(*) as count FROM ${sql.identifier(mapping.tableName)} WHERE created_at_ts >= ${thisMonth}`
+        );
+        
+        let count = 0;
+        if (Array.isArray(result) && result.length > 0) {
+          const dataRows = Array.isArray(result[0]) ? result[0] : result;
+          if (dataRows.length > 0 && dataRows[0] && typeof dataRows[0] === 'object' && 'count' in dataRows[0]) {
+            count = Number(dataRows[0].count) || 0;
+          }
+        }
+        
+        return { tableName: mapping.tableName, customTableName: mapping.customTableName, count };
+      } catch (error) {
+        console.error(`Error getting this month's count for table ${mapping.tableName}:`, error);
+        return { tableName: mapping.tableName, customTableName: mapping.customTableName, count: 0 };
+      }
+    });
+
+    const batchResults = await Promise.all(batchPromises);
+    counts.push(...batchResults);
+    
+    if (i + batchSize < tableMappings.length) {
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
+  }
+
+  return counts;
+}
+
+// Function to get last month's table counts
+async function getLastMonthTableCountsOptimized(tableMappings: Array<{ tableName: string; customTableName: string | null }>) {
+  if (tableMappings.length === 0) return [];
+
+  const now = new Date();
+  const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+  const counts: Array<{ tableName: string; customTableName: string | null; count: number }> = [];
+  
+  const batchSize = 1;
+  for (let i = 0; i < tableMappings.length; i += batchSize) {
+    const batch = tableMappings.slice(i, i + batchSize);
+    
+    const batchPromises = batch.map(async (mapping) => {
+      try {
+        const result = await dbReadReplica.execute(
+          sql`SELECT COUNT(*) as count FROM ${sql.identifier(mapping.tableName)} WHERE created_at_ts >= ${lastMonth} AND created_at_ts < ${thisMonth}`
+        );
+        
+        let count = 0;
+        if (Array.isArray(result) && result.length > 0) {
+          const dataRows = Array.isArray(result[0]) ? result[0] : result;
+          if (dataRows.length > 0 && dataRows[0] && typeof dataRows[0] === 'object' && 'count' in dataRows[0]) {
+            count = Number(dataRows[0].count) || 0;
+          }
+        }
+        
+        return { tableName: mapping.tableName, customTableName: mapping.customTableName, count };
+      } catch (error) {
+        console.error(`Error getting last month's count for table ${mapping.tableName}:`, error);
+        return { tableName: mapping.tableName, customTableName: mapping.customTableName, count: 0 };
+      }
+    });
+
+    const batchResults = await Promise.all(batchPromises);
+    counts.push(...batchResults);
+    
+    if (i + batchSize < tableMappings.length) {
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
+  }
+
+  return counts;
+}
+
+// Function to get custom date range table counts
+async function getCustomDateRangeTableCountsOptimized(
+  tableMappings: Array<{ tableName: string; customTableName: string | null }>,
+  startDate: Date,
+  endDate: Date
+) {
+  if (tableMappings.length === 0) return [];
+
+  // Ensure endDate is set to end of day for inclusive range
+  const endOfDay = new Date(endDate);
+  endOfDay.setHours(23, 59, 59, 999);
+
+  const counts: Array<{ tableName: string; customTableName: string | null; count: number }> = [];
+  
+  const batchSize = 1;
+  for (let i = 0; i < tableMappings.length; i += batchSize) {
+    const batch = tableMappings.slice(i, i + batchSize);
+    
+    const batchPromises = batch.map(async (mapping) => {
+      try {
+        const result = await dbReadReplica.execute(
+          sql`SELECT COUNT(*) as count FROM ${sql.identifier(mapping.tableName)} WHERE created_at_ts >= ${startDate} AND created_at_ts <= ${endOfDay}`
+        );
+        
+        let count = 0;
+        if (Array.isArray(result) && result.length > 0) {
+          const dataRows = Array.isArray(result[0]) ? result[0] : result;
+          if (dataRows.length > 0 && dataRows[0] && typeof dataRows[0] === 'object' && 'count' in dataRows[0]) {
+            count = Number(dataRows[0].count) || 0;
+          }
+        }
+        
+        return { tableName: mapping.tableName, customTableName: mapping.customTableName, count };
+      } catch (error) {
+        console.error(`Error getting custom date range count for table ${mapping.tableName}:`, error);
+        return { tableName: mapping.tableName, customTableName: mapping.customTableName, count: 0 };
+      }
+    });
+
+    const batchResults = await Promise.all(batchPromises);
+    counts.push(...batchResults);
+    
+    if (i + batchSize < tableMappings.length) {
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
+  }
+
+  return counts;
+}
+
+// Function to get daily stats
+async function getDailyStatsOptimized(tableMappings: Array<{ tableName: string; customTableName: string | null }>) {
+  if (tableMappings.length === 0) return [];
+
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+  const stats: Array<{
     tableName: string;
+    customTableName: string | null;
     today: number;
     yesterday: number;
     thisMonth: number;
@@ -383,108 +525,62 @@ async function getDailyStatsOptimized(tableNames: string[]) {
     hasData: boolean;
   }> = [];
 
-  // Process tables in batches
-  const batchSize = 1; // Reduced from 2 to prevent connection exhaustion
-  for (let i = 0; i < tableNames.length; i += batchSize) {
-    const batch = tableNames.slice(i, i + batchSize);
+  const batchSize = 1;
+  for (let i = 0; i < tableMappings.length; i += batchSize) {
+    const batch = tableMappings.slice(i, i + batchSize);
     
-    const batchPromises = batch.map(async (tableName) => {
+    const batchPromises = batch.map(async (mapping) => {
       try {
-        // First, let's check if table has any records at all
-        const totalRecordsResult = await dbReadReplica.execute(
-          sql`SELECT COUNT(*) as total FROM ${sql.identifier(tableName)}`
-        );
-        
-        let totalRecords = 0;
-        if (Array.isArray(totalRecordsResult) && totalRecordsResult.length > 0) {
-          const dataRows = Array.isArray(totalRecordsResult[0]) ? totalRecordsResult[0] : totalRecordsResult;
-          if (dataRows.length > 0 && dataRows[0] && typeof dataRows[0] === 'object' && 'total' in dataRows[0]) {
-            totalRecords = Number(dataRows[0].total) || 0;
-          }
-        }
-
-        // If no records, return early
-        if (totalRecords === 0) {
-          return {
-            tableName,
-            today: 0,
-            yesterday: 0,
-            thisMonth: 0,
-            lastMonth: 0,
-            totalRecords: 0,
-            hasData: false
-          };
-        }
-
-        // Use the original pattern matching approach that was working
-        const todayPattern = `${today}-${thisMonth}-${thisYear}%`;
-        const yesterdayPattern = `${yesterday}-${thisMonth}-${thisYear}%`;
-        const thisMonthPattern = `%-${thisMonth}-${thisYear}%`;
-        const lastMonthPattern = `%-${lastMonth}-${lastYear}%`;
-
-        // Execute all queries in parallel for better performance
-        const [todayResult, yesterdayResult, thisMonthResult, lastMonthResult] = await Promise.all([
+        const [todayResult, yesterdayResult, thisMonthResult, lastMonthResult, totalResult] = await Promise.all([
           dbReadReplica.execute(
-            sql`SELECT COUNT(*) as count FROM ${sql.identifier(tableName)} WHERE \`created at\` LIKE ${todayPattern}`
+            sql`SELECT COUNT(*) as count FROM ${sql.identifier(mapping.tableName)} WHERE created_at_ts >= ${today} AND created_at_ts < ${tomorrow}`
           ),
           dbReadReplica.execute(
-            sql`SELECT COUNT(*) as count FROM ${sql.identifier(tableName)} WHERE \`created at\` LIKE ${yesterdayPattern}`
+            sql`SELECT COUNT(*) as count FROM ${sql.identifier(mapping.tableName)} WHERE created_at_ts >= ${yesterday} AND created_at_ts < ${today}`
           ),
           dbReadReplica.execute(
-            sql`SELECT COUNT(*) as count FROM ${sql.identifier(tableName)} WHERE \`created at\` LIKE ${thisMonthPattern}`
+            sql`SELECT COUNT(*) as count FROM ${sql.identifier(mapping.tableName)} WHERE created_at_ts >= ${thisMonth}`
           ),
           dbReadReplica.execute(
-            sql`SELECT COUNT(*) as count FROM ${sql.identifier(tableName)} WHERE \`created at\` LIKE ${lastMonthPattern}`
+            sql`SELECT COUNT(*) as count FROM ${sql.identifier(mapping.tableName)} WHERE created_at_ts >= ${lastMonth} AND created_at_ts < ${thisMonth}`
+          ),
+          dbReadReplica.execute(
+            sql`SELECT COUNT(*) as count FROM ${sql.identifier(mapping.tableName)}`
           )
         ]);
 
-        // Parse results using the same logic as the original
-        let todayCount = 0;
-        if (Array.isArray(todayResult) && todayResult.length > 0) {
-          const dataRows = Array.isArray(todayResult[0]) ? todayResult[0] : todayResult;
-          if (dataRows.length > 0 && dataRows[0] && typeof dataRows[0] === 'object' && 'count' in dataRows[0]) {
-            todayCount = Number(dataRows[0].count) || 0;
+        const extractCount = (result: any): number => {
+          let count = 0;
+          if (Array.isArray(result) && result.length > 0) {
+            const dataRows = Array.isArray(result[0]) ? result[0] : result;
+            if (dataRows.length > 0 && dataRows[0] && typeof dataRows[0] === 'object' && 'count' in dataRows[0]) {
+              count = Number(dataRows[0].count) || 0;
+            }
           }
-        }
+          return count;
+        };
 
-        let yesterdayCount = 0;
-        if (Array.isArray(yesterdayResult) && yesterdayResult.length > 0) {
-          const dataRows = Array.isArray(yesterdayResult[0]) ? yesterdayResult[0] : yesterdayResult;
-          if (dataRows.length > 0 && dataRows[0] && typeof dataRows[0] === 'object' && 'count' in dataRows[0]) {
-            yesterdayCount = Number(dataRows[0].count) || 0;
-          }
-        }
-
-        let thisMonthCount = 0;
-        if (Array.isArray(thisMonthResult) && thisMonthResult.length > 0) {
-          const dataRows = Array.isArray(thisMonthResult[0]) ? thisMonthResult[0] : thisMonthResult;
-          if (dataRows.length > 0 && dataRows[0] && typeof dataRows[0] === 'object' && 'count' in dataRows[0]) {
-            thisMonthCount = Number(dataRows[0].count) || 0;
-          }
-        }
-
-        let lastMonthCount = 0;
-        if (Array.isArray(lastMonthResult) && lastMonthResult.length > 0) {
-          const dataRows = Array.isArray(lastMonthResult[0]) ? lastMonthResult[0] : lastMonthResult;
-          if (dataRows.length > 0 && dataRows[0] && typeof dataRows[0] === 'object' && 'count' in dataRows[0]) {
-            lastMonthCount = Number(dataRows[0].count) || 0;
-          }
-        }
+        const todayCount = extractCount(todayResult);
+        const yesterdayCount = extractCount(yesterdayResult);
+        const thisMonthCount = extractCount(thisMonthResult);
+        const lastMonthCount = extractCount(lastMonthResult);
+        const totalCount = extractCount(totalResult);
 
         return {
-          tableName,
+          tableName: mapping.tableName,
+          customTableName: mapping.customTableName,
           today: todayCount,
           yesterday: yesterdayCount,
           thisMonth: thisMonthCount,
           lastMonth: lastMonthCount,
-          totalRecords,
-          hasData: true
+          totalRecords: totalCount,
+          hasData: totalCount > 0
         };
-
       } catch (error) {
-        console.error(`Error getting stats for table ${tableName}:`, error);
+        console.error(`Error getting daily stats for table ${mapping.tableName}:`, error);
         return {
-          tableName,
+          tableName: mapping.tableName,
+          customTableName: mapping.customTableName,
           today: 0,
           yesterday: 0,
           thisMonth: 0,
@@ -496,15 +592,14 @@ async function getDailyStatsOptimized(tableNames: string[]) {
     });
 
     const batchResults = await Promise.all(batchPromises);
-    tableStats.push(...batchResults);
+    stats.push(...batchResults);
     
-    // Add a longer delay between batches to prevent overwhelming the connection pool
-    if (i + batchSize < tableNames.length) {
-      await new Promise(resolve => setTimeout(resolve, 400));
+    if (i + batchSize < tableMappings.length) {
+      await new Promise(resolve => setTimeout(resolve, 300));
     }
   }
 
-  return tableStats;
+  return stats;
 }
 
 // Helper function to calculate aggregated stats
@@ -525,4 +620,37 @@ function calculateAggregatedStats(dailyStats: any[]) {
 export async function clearDashboardCacheAction() {
   cache.clear();
   return { success: true };
+}
+
+// Server action for getting custom date range table counts
+export async function getCustomDateRangeTableCountsAction(startDate: string, endDate: string) {
+  try {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      return { success: false, error: "Invalid date format" };
+    }
+
+    // Get active table mappings
+    const tableMappingsResult = await dbWriteReplica
+      .select({
+        tableName: tableMapping.tableName,
+        customTableName: tableMapping.customTableName,
+        isActive: tableMapping.isActive
+      })
+      .from(tableMapping)
+      .where(eq(tableMapping.isActive, "true"));
+
+    if (tableMappingsResult.length === 0) {
+      return { success: true, data: [] };
+    }
+
+    const counts = await getCustomDateRangeTableCountsOptimized(tableMappingsResult, start, end);
+    
+    return { success: true, data: counts };
+  } catch (error) {
+    console.error("Error getting custom date range table counts:", error);
+    return { success: false, error: "Failed to get custom date range data" };
+  }
 }

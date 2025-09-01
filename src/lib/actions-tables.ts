@@ -223,37 +223,25 @@ export async function getDailyStatsAction(tableNames: string[]) {
     const now = new Date();
     
     // Today
-    const today = now.getDate().toString().padStart(2, '0');
-    const thisMonth = (now.getMonth() + 1).toString().padStart(2, '0');
-    const thisYear = now.getFullYear().toString();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
     
-    // Yesterday (handle month boundary)
-    const yesterdayDate = new Date(now.getTime() - (24 * 60 * 60 * 1000));
-    const yesterday = yesterdayDate.getDate().toString().padStart(2, '0');
-    const yesterdayMonth = (yesterdayDate.getMonth() + 1).toString().padStart(2, '0');
-    const yesterdayYear = yesterdayDate.getFullYear().toString();
+    // Yesterday
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
     
     // This month
-    const thisMonthPattern = `%-${thisMonth}-${thisYear}%`;
+    const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     
-    // Last month (handle year boundary)
-    let lastMonthDate: Date;
-    if (now.getMonth() === 0) {
-      // January - go to December of previous year
-      lastMonthDate = new Date(now.getFullYear() - 1, 11, 1);
-    } else {
-      // Previous month of current year
-      lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    }
-    const lastMonth = (lastMonthDate.getMonth() + 1).toString().padStart(2, '0');
-    const lastYear = lastMonthDate.getFullYear().toString();
-    const lastMonthPattern = `%-${lastMonth}-${lastYear}%`;
+    // Last month
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
-    console.log("Date patterns for DD-MM-YYYY format:", { 
-      today: `${today}-${thisMonth}-${thisYear}%`,
-      yesterday: `${yesterday}-${yesterdayMonth}-${yesterdayYear}%`,
-      thisMonth: thisMonthPattern,
-      lastMonth: lastMonthPattern
+    console.log("Date ranges for timestamp queries:", { 
+      today: today.toISOString(),
+      tomorrow: tomorrow.toISOString(),
+      yesterday: yesterday.toISOString(),
+      thisMonth: thisMonth.toISOString(),
+      lastMonth: lastMonth.toISOString()
     });
 
     const tableStats: Array<{
@@ -302,25 +290,21 @@ export async function getDailyStatsAction(tableNames: string[]) {
           continue;
         }
         
-        // Use the correct pattern for DD-MM-YYYY HH:mm format
-        const todayPattern = `${today}-${thisMonth}-${thisYear}%`;
-        const yesterdayPattern = `${yesterday}-${yesterdayMonth}-${yesterdayYear}%`;
+        console.log(`Using timestamp queries for ${tableName}`);
         
-        console.log(`Using patterns for ${tableName}:`, { todayPattern, yesterdayPattern });
-        
-        // Execute all queries in parallel for better performance
+        // Execute all queries in parallel for better performance using created_at_ts timestamp
         const [todayResult, yesterdayResult, thisMonthResult, lastMonthResult] = await Promise.all([
           dbReadReplica.execute(
-            sql`SELECT COUNT(*) as count FROM ${sql.identifier(tableName)} WHERE \`created at\` LIKE ${todayPattern}`
+            sql`SELECT COUNT(*) as count FROM ${sql.identifier(tableName)} WHERE created_at_ts >= ${today} AND created_at_ts < ${tomorrow}`
           ),
           dbReadReplica.execute(
-            sql`SELECT COUNT(*) as count FROM ${sql.identifier(tableName)} WHERE \`created at\` LIKE ${yesterdayPattern}`
+            sql`SELECT COUNT(*) as count FROM ${sql.identifier(tableName)} WHERE created_at_ts >= ${yesterday} AND created_at_ts < ${today}`
           ),
           dbReadReplica.execute(
-            sql`SELECT COUNT(*) as count FROM ${sql.identifier(tableName)} WHERE \`created at\` LIKE ${thisMonthPattern}`
+            sql`SELECT COUNT(*) as count FROM ${sql.identifier(tableName)} WHERE created_at_ts >= ${thisMonth}`
           ),
           dbReadReplica.execute(
-            sql`SELECT COUNT(*) as count FROM ${sql.identifier(tableName)} WHERE \`created at\` LIKE ${lastMonthPattern}`
+            sql`SELECT COUNT(*) as count FROM ${sql.identifier(tableName)} WHERE created_at_ts >= ${lastMonth} AND created_at_ts < ${thisMonth}`
           )
         ]);
         
