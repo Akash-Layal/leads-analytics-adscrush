@@ -1,4 +1,3 @@
-"use server";
 // Table service with caching
 import { db } from "@/db/writereplica";
 import { tableMapping } from "@/db/writereplica/schema";
@@ -236,7 +235,7 @@ export const getActiveTableMappings = cacheResult(
 );
 
 // Cache invalidation helpers
-export function invalidateTableCache(mappingId?: string, clientId?: string) {
+export async function invalidateTableCache(mappingId?: string, clientId?: string) {
   if (mappingId) {
     tableCache.delete(generateCacheKey('getTableMappingById', mappingId));
   }

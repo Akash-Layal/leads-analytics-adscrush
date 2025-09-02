@@ -1,4 +1,3 @@
-"use server";
 // Cache management service
 import { 
   globalCache, 
@@ -214,11 +213,11 @@ export class CacheManagementService {
 export const cacheManagementService = CacheManagementService.getInstance();
 
 // Utility functions for common cache operations
-export const clearAllCaches = () => cacheManagementService.clearAllCaches();
-export const getCacheStats = () => cacheManagementService.getAllCacheStats();
-export const getCacheHealth = () => cacheManagementService.getAllCacheHealth();
-export const warmAllCaches = () => cacheManagementService.warmAllCaches();
-export const getCachePerformance = () => cacheManagementService.getCachePerformanceMetrics();
-export const getCacheRecommendations = () => cacheManagementService.getCacheRecommendations();
-export const exportCacheData = () => cacheManagementService.exportCacheData();
-export const resetAllCaches = () => cacheManagementService.resetAllCaches();
+export const clearAllCaches = async () => cacheManagementService.clearAllCaches();
+export const getCacheStats = async () => cacheManagementService.getAllCacheStats();
+export const getCacheHealth = async () => cacheManagementService.getAllCacheHealth();
+export const warmAllCaches = async () => cacheManagementService.warmAllCaches();
+export const getCachePerformance = async () => cacheManagementService.getCachePerformanceMetrics();
+export const getCacheRecommendations = async () => cacheManagementService.getCacheRecommendations();
+export const exportCacheData = async () => cacheManagementService.exportCacheData();
+export const resetAllCaches = async () => cacheManagementService.resetAllCaches();

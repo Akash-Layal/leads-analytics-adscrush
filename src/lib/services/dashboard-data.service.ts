@@ -1,9 +1,8 @@
-"use server";
 // Optimized dashboard data service with parallel queries and caching
 import { db as dbReplica } from "@/db/readreplica";
 import { getClientCount } from "./client.service";
 import { getTableMappingCount } from "./table.service";
-import { leadService } from "./leadService";
+import { getTableWiseCountsWithGrowth } from "./leadService";
 import {
   getLastMonthLeadsCount,
   getLastWeekLeadsCount,
@@ -64,7 +63,7 @@ export const getDashboardData = cacheResult(
         getLastWeekLeadsCount(dbReplica),
         getThisMonthLeadsCount(dbReplica),
         getLastMonthLeadsCount(dbReplica),
-        leadService.getTableWiseCountsWithGrowth(date_from ?? "", date_to ?? "")
+        getTableWiseCountsWithGrowth(date_from ?? "", date_to ?? "")
       ]);
 
       // Extract counts with fallback values

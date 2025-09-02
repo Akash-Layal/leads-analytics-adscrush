@@ -5,7 +5,7 @@ import {
   getTotalCount as getTotalCountService,
   getAllTableStats as getAllTableStatsService
 } from '@/lib/services/analytics.service';
-import { leadService } from './services/leadService';
+import { getTableWiseCountsWithGrowth } from './services/leadService';
 
 export async function getAllTableCountsAction() {
   try {
@@ -49,7 +49,7 @@ export async function getAllTableStatsAction() {
 export async function getTableCountsWithDateRangeAction(date_from: string | Date, date_to: string | Date) {
   try {
     // Fetch table counts with growth data
-    const tableCounts = await leadService.getTableWiseCountsWithGrowth(date_from?.toString(), date_to?.toString());
+    const tableCounts = await getTableWiseCountsWithGrowth(date_from?.toString(), date_to?.toString());
 
     // Calculate total leads and average growth for the selected period
     const totalLeads = tableCounts.reduce((sum, table) => sum + table.count, 0);

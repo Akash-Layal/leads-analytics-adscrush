@@ -1,4 +1,3 @@
-"use server";
 // leadService.ts
 import { dbReadReplica } from "@/db/readreplica";
 import { db } from "@/db/writereplica";
@@ -156,3 +155,12 @@ export class LeadService {
 }
 
 export const leadService = new LeadService(db, dbReadReplica);
+
+// Async wrapper functions for server actions
+export async function getTableWiseCountsWithGrowth(startDate?: string, endDate?: string) {
+  return leadService.getTableWiseCountsWithGrowth(startDate, endDate);
+}
+
+export async function getTotalCount(startDate?: string, endDate?: string) {
+  return leadService.getTotalCount(startDate, endDate);
+}

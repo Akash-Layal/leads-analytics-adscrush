@@ -1,5 +1,3 @@
-"use server";
-
 import { sql } from "drizzle-orm";
 import { MySql2Database } from "drizzle-orm/mysql2";
 import { globalCache } from "@/lib/cache";
@@ -166,32 +164,32 @@ export const getTotalRowCount = async (db: MySql2Database): Promise<number> => {
 };
 
 // 2. Period-based counts
-export const getTodayLeadsCount = (db: MySql2Database) => {
+export const getTodayLeadsCount = async (db: MySql2Database) => {
     const { startUtc, endUtc } = getUtcRangeForPeriod("today");
     return countLeadsInRange(db, startUtc, endUtc, "leads:today");
 };
 
-export const getYesterdayLeadsCount = (db: MySql2Database) => {
+export const getYesterdayLeadsCount = async (db: MySql2Database) => {
     const { startUtc, endUtc } = getUtcRangeForPeriod("yesterday");
     return countLeadsInRange(db, startUtc, endUtc, "leads:yesterday");
 };
 
-export const getThisWeekLeadsCount = (db: MySql2Database) => {
+export const getThisWeekLeadsCount = async (db: MySql2Database) => {
     const { startUtc, endUtc } = getUtcRangeForPeriod("thisWeek");
     return countLeadsInRange(db, startUtc, endUtc, "leads:thisWeek");
 };
 
-export const getLastWeekLeadsCount = (db: MySql2Database) => {
+export const getLastWeekLeadsCount = async (db: MySql2Database) => {
     const { startUtc, endUtc } = getUtcRangeForPeriod("lastWeek");
     return countLeadsInRange(db, startUtc, endUtc, "leads:lastWeek");
 };
 
-export const getThisMonthLeadsCount = (db: MySql2Database) => {
+export const getThisMonthLeadsCount = async (db: MySql2Database) => {
     const { startUtc, endUtc } = getUtcRangeForPeriod("thisMonth");
     return countLeadsInRange(db, startUtc, endUtc, "leads:thisMonth");
 };
 
-export const getLastMonthLeadsCount = (db: MySql2Database) => {
+export const getLastMonthLeadsCount = async (db: MySql2Database) => {
     const { startUtc, endUtc } = getUtcRangeForPeriod("lastMonth");
     return countLeadsInRange(db, startUtc, endUtc, "leads:lastMonth");
 };
