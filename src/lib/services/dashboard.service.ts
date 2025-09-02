@@ -1,3 +1,4 @@
+"use server";
 // Dashboard service with caching
 import { db } from "@/db/writereplica";
 import { client, tableMapping } from "@/db/writereplica/schema";

@@ -1,3 +1,4 @@
+"use server";
 // leadService.ts
 import { dbReadReplica } from "@/db/readreplica";
 import { db } from "@/db/writereplica";

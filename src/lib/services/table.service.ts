@@ -1,3 +1,4 @@
+"use server";
 // Table service with caching
 import { db } from "@/db/writereplica";
 import { tableMapping } from "@/db/writereplica/schema";

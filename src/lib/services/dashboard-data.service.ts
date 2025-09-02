@@ -1,3 +1,4 @@
+"use server";
 // Optimized dashboard data service with parallel queries and caching
 import { db as dbReplica } from "@/db/readreplica";
 import { getClientCount } from "./client.service";

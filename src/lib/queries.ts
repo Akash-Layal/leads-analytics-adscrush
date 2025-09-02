@@ -1,3 +1,5 @@
+"use server";
+
 import { sql } from "drizzle-orm";
 import { MySql2Database } from "drizzle-orm/mysql2";
 import { globalCache } from "@/lib/cache";

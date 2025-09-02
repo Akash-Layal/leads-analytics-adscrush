@@ -1,3 +1,4 @@
+"use server";
 // Cache management service
 import { 
   globalCache, 
