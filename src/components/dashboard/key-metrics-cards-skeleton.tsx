@@ -3,20 +3,24 @@ import { Loader2 } from "lucide-react";
 
 interface KeyMetricsCardsSkeletonProps {
   isDateChanging?: boolean;
+  isCacheRefreshing?: boolean;
 }
 
-export function KeyMetricsCardsSkeleton({ isDateChanging = false }: KeyMetricsCardsSkeletonProps) {
+export function KeyMetricsCardsSkeleton({ isDateChanging = false, isCacheRefreshing = false }: KeyMetricsCardsSkeletonProps) {
+  const showLoadingMessage = isDateChanging || isCacheRefreshing;
+  const loadingMessage = isCacheRefreshing ? "Refreshing cache..." : "Loading new data...";
+  
   return (
     <div className="relative">
-      {isDateChanging && (
+      {showLoadingMessage && (
         <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-center py-2">
           <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium flex items-center gap-2">
             <Loader2 className="h-3 w-3 animate-spin" />
-            Loading new data...
+            {loadingMessage}
           </div>
         </div>
       )}
-      <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8 ${isDateChanging ? 'pt-8' : ''}`}>
+      <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8 ${showLoadingMessage ? 'pt-8' : ''}`}>
         {Array.from({ length: 9 }).map((_, i) => (
           <div key={i} className="border rounded-lg p-6 bg-gradient-to-br from-slate-50 to-gray-50/40">
             <div className="flex flex-row items-center justify-between space-y-0 pb-2">

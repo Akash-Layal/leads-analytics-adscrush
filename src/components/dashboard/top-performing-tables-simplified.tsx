@@ -27,13 +27,14 @@ interface TopPerformingTablesProps {
   averageGrowth?: number;
   isLoading?: boolean;
   isDateChanging?: boolean;
+  isCacheRefreshing?: boolean;
   searchQuery?: string;
   onSearchChange?: (query: string) => void;
   onDateRangeChange?: (from?: Date, to?: Date) => void;
 }
 
 // ---- Loading Skeleton Component ----
-function TopPerformingTablesSkeleton() {
+function TopPerformingTablesSkeleton({ isCacheRefreshing = false }: { isCacheRefreshing?: boolean } = {}) {
   return (
     <Card className="w-full border-0 shadow-lg bg-gradient-to-br from-white to-gray-50/30">
       <CardHeader className="pb-6">
@@ -48,6 +49,14 @@ function TopPerformingTablesSkeleton() {
             </div>
           </div>
         </div>
+        {isCacheRefreshing && (
+          <div className="mt-4">
+            <div className="bg-blue-100 text-blue-800 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Refreshing cache...
+            </div>
+          </div>
+        )}
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -137,6 +146,7 @@ export function TopPerformingTables({
   averageGrowth = 0,
   isLoading = false,
   isDateChanging = false,
+  isCacheRefreshing = false,
   searchQuery = "",
   onSearchChange,
   onDateRangeChange,
@@ -153,7 +163,7 @@ export function TopPerformingTables({
   const sortedTables = filteredAndSortedTables;
 
   if (isLoading) {
-    return <TopPerformingTablesSkeleton />;
+    return <TopPerformingTablesSkeleton isCacheRefreshing={isCacheRefreshing} />;
   }
 
   const topPerformer = sortedTables[0];

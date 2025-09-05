@@ -79,20 +79,16 @@ export function CacheRefreshButton({ onRefresh, className }: CacheRefreshButtonP
     }
   }, [cooldown]);
 
-  // Function to manually reset cooldown (for testing or admin purposes)
-  const resetCooldown = () => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('cache-refresh-cooldown');
-    }
-    setCooldown(0);
-    setIsDisabled(false);
-  };
 
   const handleRefresh = async () => {
     if (isDisabled || isRefreshing) return;
 
     try {
       setIsRefreshing(true);
+      
+      // Dispatch cache refresh event to trigger skeleton loading
+      window.dispatchEvent(new CustomEvent('cache-refresh-start'));
+      
       await clearAllCachesAction();
       
       // Set 1 minute cooldown (60 seconds)
@@ -109,12 +105,17 @@ export function CacheRefreshButton({ onRefresh, className }: CacheRefreshButtonP
         console.log('Cooldown saved to localStorage:', cooldownData);
       }
       
+      // Dispatch cache refresh complete event
+      window.dispatchEvent(new CustomEvent('cache-refreshed'));
+      
       // Trigger parent refresh callback
       if (onRefresh) {
         onRefresh();
       }
     } catch (error) {
       console.error('Error clearing cache:', error);
+      // Dispatch error event
+      window.dispatchEvent(new CustomEvent('cache-refresh-error', { detail: error }));
     } finally {
       setIsRefreshing(false);
     }

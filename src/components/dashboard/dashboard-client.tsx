@@ -20,6 +20,7 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
   });
 
   const [searchQuery, setSearchQuery] = React.useState("");
+  const [isCacheRefreshing, setIsCacheRefreshing] = React.useState(false);
 
   const currentData = data || initialData;
 
@@ -28,6 +29,31 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
     // The date range change will be handled by the URL search params
     // which will trigger the useDashboardData hook to refetch data
     console.log('Date range changed:', { from, to });
+  }, []);
+
+  // Listen for cache refresh events
+  React.useEffect(() => {
+    const handleCacheRefreshStart = () => {
+      setIsCacheRefreshing(true);
+    };
+
+    const handleCacheRefreshComplete = () => {
+      setIsCacheRefreshing(false);
+    };
+
+    const handleCacheRefreshError = () => {
+      setIsCacheRefreshing(false);
+    };
+
+    window.addEventListener('cache-refresh-start', handleCacheRefreshStart);
+    window.addEventListener('cache-refreshed', handleCacheRefreshComplete);
+    window.addEventListener('cache-refresh-error', handleCacheRefreshError);
+
+    return () => {
+      window.removeEventListener('cache-refresh-start', handleCacheRefreshStart);
+      window.removeEventListener('cache-refreshed', handleCacheRefreshComplete);
+      window.removeEventListener('cache-refresh-error', handleCacheRefreshError);
+    };
   }, []);
 
   // Show error state
@@ -72,8 +98,8 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
     <div className="space-y-6">
       {/* Key Metrics Cards */}
       <div className="relative">
-        {(isLoading && !data) ? (
-          <KeyMetricsCardsSkeleton />
+        {(isLoading && !data) || isCacheRefreshing ? (
+          <KeyMetricsCardsSkeleton isDateChanging={isDateChanging} isCacheRefreshing={isCacheRefreshing} />
         ) : (
           <KeyMetricsCards
             totalClients={currentData.totalClientsCount}
@@ -94,7 +120,8 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
         tableCounts={currentData.tableCounts}
         totalLeads={currentData.totalLeads}
         averageGrowth={currentData.averageGrowth}
-        isLoading={isRefreshing || isDateChanging}
+        isLoading={isRefreshing || isDateChanging || isCacheRefreshing}
+        isCacheRefreshing={isCacheRefreshing}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         onDateRangeChange={handleDateRangeChange}
