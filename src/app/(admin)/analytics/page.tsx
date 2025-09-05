@@ -1,4 +1,4 @@
-import { AnalyticsPageClient } from "@/components/analytics-page-client";
+import { AnalyticsPageClient } from "@/components/pages/analytics-page-client";
 import { getAllTableCountsAction, getAllTableStatsAction, getTotalCountAction } from "@/lib/actions-analytics";
 
 export default async function DashboardPage() {

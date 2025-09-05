@@ -17,6 +17,7 @@ export const getAllTableMappings = cacheResult(
           tableSchema: tableMapping.tableSchema,
           description: tableMapping.description,
           isActive: tableMapping.isActive,
+          imageUrl: tableMapping.imageUrl,
           xataCreatedat: tableMapping.xataCreatedat,
           xataUpdatedat: tableMapping.xataUpdatedat,
         })
@@ -47,6 +48,7 @@ export const getTableMappingById = cacheResult(
           tableSchema: tableMapping.tableSchema,
           description: tableMapping.description,
           isActive: tableMapping.isActive,
+          imageUrl: tableMapping.imageUrl,
           xataCreatedat: tableMapping.xataCreatedat,
           xataUpdatedat: tableMapping.xataUpdatedat,
         })
@@ -82,6 +84,7 @@ export const getTableMappingsByClientId = cacheResult(
           tableSchema: tableMapping.tableSchema,
           description: tableMapping.description,
           isActive: tableMapping.isActive,
+          imageUrl: tableMapping.imageUrl,
           xataCreatedat: tableMapping.xataCreatedat,
           xataUpdatedat: tableMapping.xataUpdatedat,
         })

@@ -13,6 +13,7 @@ import { fromIST, getCurrentISTDate } from "@/lib/helpers/date";
 type TableRowCount = {
   tableName: string;
   displayName: string;
+  imageUrl: string | null ;
   count: number;         // current period count
   previousCount: number; // previous period count (same duration before)
 };
@@ -74,7 +75,7 @@ export class LeadService {
       $client: postgres.Sql<Record<string, unknown>>;
     },
     private readDb: MySql2Database
-  ) {}
+  ) { }
 
   /**
    * Get row counts for current and previous period (growth %).
@@ -104,6 +105,7 @@ export class LeadService {
         tableName: tableMapping.tableName,
         isActive: tableMapping.isActive,
         displayName: tableMapping.customTableName,
+        imageUrl: tableMapping.imageUrl,
       })
       .from(tableMapping)
       .where(eq(tableMapping.isActive, "true"));
@@ -111,7 +113,7 @@ export class LeadService {
     const results: TableRowCount[] = [];
 
     // Query each table
-    for (const { tableName, displayName } of mappings) {
+    for (const { tableName, displayName, imageUrl } of mappings) {
       // Current period
       const currentRes = await this.readDb.execute(
         sql`
@@ -137,6 +139,7 @@ export class LeadService {
       results.push({
         tableName,
         displayName: displayName ?? tableName,
+        imageUrl: imageUrl ?? null, // Default image for all tables
         count: currentCount,
         previousCount,
       });

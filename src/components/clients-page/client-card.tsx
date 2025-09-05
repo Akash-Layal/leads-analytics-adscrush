@@ -2,7 +2,7 @@
 
 import { AssignTableDialog } from "@/components/assign-table-dialog";
 import { DeleteClientAlertDialog } from "@/components/delete-client-alert-dialog";
-import { RemoveTableAlertDialog } from "@/components/remove-table-alert-dialog";
+import { RemoveTableAlertDialog } from "@/components/product/remove-table-alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

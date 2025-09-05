@@ -1,6 +1,7 @@
 // Main cache module exports
 export * from './store';
 export * from './utils';
+export * from './keys';
 
 // Re-export commonly used cache instances
 export { 

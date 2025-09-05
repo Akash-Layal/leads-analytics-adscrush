@@ -26,6 +26,7 @@ export const tableMapping = pgTable("TableMapping", {
 	xataUpdatedat: timestamp("xata_updatedat", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 	clientId: text("client_id").notNull(),
 	tableName: text("table_name").notNull(),
+	imageUrl: text("image_url"),
 	customTableName: text("custom_table_name"),
 	tableSchema: text("table_schema").notNull(),
 	description: text("description"),

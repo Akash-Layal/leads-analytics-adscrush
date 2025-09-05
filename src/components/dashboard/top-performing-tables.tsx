@@ -8,7 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BarChart3, Download, Eye, Search, Target, TrendingUp, Trophy, X, Zap } from "lucide-react";
 import React from "react";
-import { CalendarDateRangePicker } from "../date-range-picker";
+import { CalendarDateRangePicker } from "../shared/date-range-picker";
 import { getTableCountsWithDateRangeAction } from "@/lib/actions-analytics";
 import { convertDateRangeToIST } from "@/lib/helpers/date";
 

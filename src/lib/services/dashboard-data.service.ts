@@ -12,7 +12,7 @@ import {
   getTotalRowCount,
   getYesterdayLeadsCount,
 } from "@/lib/queries";
-import { cacheResult, globalCache } from "@/lib/cache";
+import { cacheResult, globalCache, CACHE_KEYS } from "@/lib/cache";
 
 export type DashboardData = {
   totalClientsCount: number;
@@ -27,6 +27,7 @@ export type DashboardData = {
   tableCounts: Array<{
     tableName: string;
     displayName: string;
+    imageUrl: string;
     count: number;
     previousCount: number;
   }>;
@@ -103,7 +104,7 @@ export const getDashboardData = cacheResult(
     }
   },
   globalCache,
-  'dashboard-data',
+  CACHE_KEYS.DASHBOARD.DATA,
   { ttl: 2 * 60 * 1000 } // 2 minutes cache
 );
 

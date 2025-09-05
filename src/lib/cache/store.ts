@@ -1,4 +1,6 @@
 // Centralized Cache Store for the entire application
+import { CACHE_KEYS } from './keys';
+
 export interface CacheEntry<T = unknown> {
   data: T;
   timestamp: number;
@@ -28,6 +30,9 @@ export class CacheStore {
   private store: Map<string, CacheEntry> = new Map();
   private stats: Map<string, CacheStats> = new Map();
   private options: Required<CacheOptions>;
+
+  // Cache keys as properties for easy access and autocomplete
+  public readonly KEYS = CACHE_KEYS;
 
   constructor(options: CacheOptions = {}) {
     this.options = {

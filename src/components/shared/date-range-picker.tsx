@@ -130,7 +130,7 @@ export function CalendarDateRangePicker({
         </Button>
       ) : null}
       <Popover>
-        <PopoverTrigger>
+        <PopoverTrigger asChild>
           <Button
             id="date"
             variant={"outline"}

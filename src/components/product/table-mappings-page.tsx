@@ -1,23 +1,24 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { EditTableMappingDialog } from './edit-table-mapping-dialog';
-import { getAllTableMappingsAction, updateTableMappingAction } from '@/lib/actions-table-mappings';
+import { getAllTableMappingsAction, updateTableMappingAction, invalidateTableMappingCachesAction } from '@/lib/actions-table-mappings';
 import { getTableDisplayName } from '@/lib/table-utils';
-import { IconEdit, IconDatabase, IconUser, IconCalendar } from '@tabler/icons-react';
+import { IconCalendar, IconDatabase, IconEdit, IconUser, IconPhoto, IconRefresh } from '@tabler/icons-react';
+import Image from 'next/image';
+import React, { useState } from 'react';
+import { EditTableMappingDialog } from './edit-table-mapping-dialog';
 
 interface TableMapping {
   xataId: string;
   clientId: string;
   tableName: string;
   customTableName: string | null;
+  imageUrl: string | null;
   tableSchema: string;
   description: string | null;
   isActive: string;
@@ -29,28 +30,24 @@ interface TableMapping {
   };
 }
 
-export function TableMappingsPage() {
-  const [tableMappings, setTableMappings] = useState<TableMapping[]>([]);
-  const [loading, setLoading] = useState(true);
+export function TableMappingsPage({ promiseData }: { promiseData: ReturnType<typeof getAllTableMappingsAction> }) {
+  // React experimental use() hook to unwrap promises
+  const initialData = React.use(promiseData);
+
+  const [tableMappings, setTableMappings] = useState<TableMapping[]>((initialData?.mappings as TableMapping[]) || []);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [editingMapping, setEditingMapping] = useState<TableMapping | null>(null);
-
-  useEffect(() => {
-    loadTableMappings();
-  }, []);
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
 
   const loadTableMappings = async () => {
     try {
-      setLoading(true);
       const result = await getAllTableMappingsAction();
       if (result.success) {
-        setTableMappings(result.mappings || []);
+        setTableMappings((result.mappings as TableMapping[]) || []);
       }
     } catch (error) {
       console.error('Error loading table mappings:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -71,14 +68,14 @@ export function TableMappingsPage() {
   };
 
   const filteredMappings = tableMappings.filter(mapping => {
-    const matchesSearch = 
+    const matchesSearch =
       mapping.tableName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (mapping.customTableName && mapping.customTableName.toLowerCase().includes(searchTerm.toLowerCase())) ||
       mapping.client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       mapping.client.company.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesStatus = filterStatus === 'all' || mapping.isActive === filterStatus;
-    
+
     return matchesSearch && matchesStatus;
   });
 
@@ -86,24 +83,19 @@ export function TableMappingsPage() {
     return getTableDisplayName(mapping.tableName, mapping.customTableName);
   };
 
-  if (loading) {
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <Card key={i}>
-            <CardHeader>
-              <div className="h-4 bg-gray-200 rounded animate-pulse mb-2" />
-              <div className="h-3 bg-gray-200 rounded animate-pulse w-1/2" />
-            </CardHeader>
-            <CardContent>
-              <div className="h-3 bg-gray-200 rounded animate-pulse mb-2" />
-              <div className="h-3 bg-gray-200 rounded animate-pulse w-2/3" />
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    );
-  }
+  const handleImageError = (mappingId: string) => {
+    setImageErrors(prev => new Set(prev).add(mappingId));
+  };
+
+  const handleImageLoad = (mappingId: string) => {
+    setImageErrors(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(mappingId);
+      return newSet;
+    });
+  };
+
+
 
   return (
     <div className="space-y-6">
@@ -122,7 +114,7 @@ export function TableMappingsPage() {
         <div className="flex gap-2">
           <Select value={filterStatus} onValueChange={setFilterStatus}>
             <SelectTrigger className="w-32">
-              <SelectValue />
+              <SelectValue placeholder="Filter" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
@@ -155,7 +147,35 @@ export function TableMappingsPage() {
                 </Badge>
               </div>
             </CardHeader>
-            
+
+            {/* Image Display */}
+            {mapping.imageUrl && !imageErrors.has(mapping.xataId) && (
+              <div className="px-6 pb-3">
+                <div className="relative w-full h-32 bg-gray-50 rounded-md overflow-hidden">
+                  <Image
+                    src={mapping.imageUrl}
+                    alt={`${getDisplayName(mapping)} preview`}
+                    fill
+                    className="object-cover"
+                    onError={() => handleImageError(mapping.xataId)}
+                    onLoad={() => handleImageLoad(mapping.xataId)}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Image Error State */}
+            {mapping.imageUrl && imageErrors.has(mapping.xataId) && (
+              <div className="px-6 pb-3">
+                <div className="w-full h-32 bg-gray-100 rounded-md flex items-center justify-center">
+                  <div className="text-center text-gray-500">
+                    <IconPhoto className="h-8 w-8 mx-auto mb-2" />
+                    <p className="text-xs">Image failed to load</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <CardContent className="space-y-3">
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <IconUser className="h-4 w-4" />
@@ -163,18 +183,18 @@ export function TableMappingsPage() {
                 <span className="text-gray-400">•</span>
                 <span>{mapping.client.company}</span>
               </div>
-              
+
               {mapping.description && (
                 <p className="text-sm text-gray-600 line-clamp-2">
                   {mapping.description}
                 </p>
               )}
-              
+
               <div className="flex items-center gap-2 text-xs text-gray-500">
                 <IconCalendar className="h-4 w-4" />
                 <span>Updated: {new Date(mapping.xataUpdatedat).toLocaleDateString()}</span>
               </div>
-              
+
               <div className="pt-2 border-t">
                 <Button
                   variant="outline"
@@ -196,10 +216,9 @@ export function TableMappingsPage() {
           <IconDatabase className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No product mappings found</h3>
           <p className="text-gray-500">
-            {searchTerm || filterStatus !== 'all' 
+            {searchTerm || filterStatus !== 'all'
               ? 'Try adjusting your search or filter criteria.'
-              : 'No table mappings have been created yet.'
-            }
+              : 'No table mappings have been created yet.'}
           </p>
         </div>
       )}

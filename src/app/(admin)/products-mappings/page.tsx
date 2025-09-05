@@ -1,8 +1,12 @@
 import { Suspense } from 'react';
-import { TableMappingsPage } from '@/components/table-mappings-page';
+import { TableMappingsPage } from '@/components/product/table-mappings-page';
 import { Skeleton } from '@/components/ui/skeleton';
+import { getAllTableMappingsAction } from '@/lib/actions-table-mappings';
+import InvalidateTableMappingCache from '@/components/product/invalidate-cache';
 
 export default function TableMappingsPageRoute() {
+
+  const result = getAllTableMappingsAction();
   return (
     <div className="container mx-auto p-8 space-y-6">
       <div className="flex items-center justify-between">
@@ -12,10 +16,11 @@ export default function TableMappingsPageRoute() {
             Manage table mappings, custom names, and descriptions for all clients
           </p>
         </div>
+        <InvalidateTableMappingCache />
       </div>
       
       <Suspense fallback={<TableMappingsSkeleton />}>
-        <TableMappingsPage />
+        <TableMappingsPage promiseData={result}/>
       </Suspense>
     </div>
   );
