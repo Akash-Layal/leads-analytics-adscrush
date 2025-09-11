@@ -3,6 +3,7 @@ import { db } from "@/db/writereplica";
 import { tableMapping } from "@/db/writereplica/schema";
 import { eq, sql } from "drizzle-orm";
 import { tableCache, cacheResult, generateCacheKey } from "@/lib/cache";
+import { CACHE_KEYS } from "@/lib/cache/keys";
 
 // Get all table mappings with caching
 export const getAllTableMappings = cacheResult(
@@ -138,6 +139,7 @@ export async function createTableMapping(mappingData: {
 
     // Invalidate related caches
     tableCache.delete(generateCacheKey('getTableMappingsByClientId', mappingData.clientId));
+    tableCache.delete(CACHE_KEYS.TABLE_MAPPINGS.ALL);
     tableCache.clear('tables');
 
     return { success: true, mappingId: result[0]?.xataId };
@@ -173,6 +175,7 @@ export async function updateTableMapping(
     // Invalidate related caches
     tableCache.delete(generateCacheKey('getTableMappingById', mappingId));
     tableCache.delete(generateCacheKey('getTableMappingsByClientId', result[0].clientId));
+    tableCache.delete(CACHE_KEYS.TABLE_MAPPINGS.ALL);
     tableCache.clear('tables');
 
     return { success: true, mappingId: result[0]?.xataId };
@@ -197,6 +200,7 @@ export async function deleteTableMapping(mappingId: string) {
     // Invalidate related caches
     tableCache.delete(generateCacheKey('getTableMappingById', mappingId));
     tableCache.delete(generateCacheKey('getTableMappingsByClientId', result[0].clientId));
+    tableCache.delete(CACHE_KEYS.TABLE_MAPPINGS.ALL);
     tableCache.clear('tables');
 
     return { success: true, mappingId: result[0]?.xataId };
@@ -245,6 +249,7 @@ export async function invalidateTableCache(mappingId?: string, clientId?: string
   if (clientId) {
     tableCache.delete(generateCacheKey('getTableMappingsByClientId', clientId));
   }
+  tableCache.delete(CACHE_KEYS.TABLE_MAPPINGS.ALL);
   tableCache.clear('tables');
 }
 

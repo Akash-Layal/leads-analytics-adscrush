@@ -4,6 +4,7 @@ import { db } from "@/db/writereplica";
 import { tableMapping, client } from "@/db/writereplica/schema";
 import { eq, sql } from "drizzle-orm";
 import { tableCache, cacheResult, generateCacheKey } from "@/lib/cache";
+import { CACHE_KEYS } from "@/lib/cache/keys";
 
 // Get all table mappings with client information and caching
 export const getAllTableMappingsWithClients = cacheResult(
@@ -22,9 +23,9 @@ export const getAllTableMappingsWithClients = cacheResult(
           xataUpdatedat: tableMapping.xataUpdatedat,
           client: {
             xataId: client.xataId,
-            clientName: client.clientName,
-            clientEmail: client.clientEmail,
-            clientStatus: client.clientStatus,
+            clientName: client.name,
+            clientEmail: client.email,
+            clientStatus: client.status,
           },
         })
         .from(tableMapping)
@@ -265,6 +266,7 @@ export async function bulkUpdateTableMappings(
         tableCache.delete(generateCacheKey('getTableMappingsByClientId', clientId));
       }
     });
+    tableCache.delete(CACHE_KEYS.TABLE_MAPPINGS.ALL);
     tableCache.clear('tables');
 
     return { success: true, updatedCount: result.length };
@@ -319,6 +321,7 @@ export function invalidateTableMappingCache(mappingId?: string, clientId?: strin
   if (clientId) {
     tableCache.delete(generateCacheKey('getTableMappingsByClientId', clientId));
   }
+  tableCache.delete(CACHE_KEYS.TABLE_MAPPINGS.ALL);
   tableCache.clear('tables');
 }
 
