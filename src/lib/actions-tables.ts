@@ -48,7 +48,8 @@ export async function getAllReadReplicaTablesAction() {
       'gb_slimo_veda_gujrati',
       'gb_spartan_hindi',
       'gb_strong_men_hindi',
-      'gb_xeno_prost_hindi'
+      'gb_xeno_prost_hindi',
+      'gb_force_one_hindi'
     ];
     
     console.log("Schema tables:", schemaTables);
