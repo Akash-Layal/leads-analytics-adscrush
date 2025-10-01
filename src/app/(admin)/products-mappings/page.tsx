@@ -4,6 +4,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { getAllTableMappingsAction } from '@/lib/actions-table-mappings';
 import InvalidateTableMappingCache from '@/components/product/invalidate-cache';
 
+export const dynamic = 'force-dynamic';
+
 export default function TableMappingsPageRoute() {
 
   const result = getAllTableMappingsAction();
