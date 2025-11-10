@@ -53,7 +53,11 @@ export async function getAllReadReplicaTablesAction() {
       'gb_nonstop_kama_hindi',
       'gb_jonitas_hindi',
       "gb_energy_booster_hindi",
-      "gb_b_boost_hindi"
+      "gb_b_boost_hindi",
+      "gb_bb_maxx_tamil",
+      "gb_jonitas_tamil",
+      "gb_keto_max_tamil",
+      "gb_pile_xpert_tamil"
     ];
     
     console.log("Schema tables:", schemaTables);
