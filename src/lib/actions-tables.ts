@@ -59,7 +59,8 @@ export async function getAllReadReplicaTablesAction() {
       "gb_keto_max_tamil",
       "gb_pile_xpert_tamil",
       "gb_bold_pro_maxx_tamil",
-      "gb_horny_jack_hindi"
+      "gb_horny_jack_hindi",
+      "gb_bb_enhance_cream_hindi"
     ];
     
     console.log("Schema tables:", schemaTables);
