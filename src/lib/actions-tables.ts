@@ -60,7 +60,8 @@ export async function getAllReadReplicaTablesAction() {
       "gb_pile_xpert_tamil",
       "gb_bold_pro_maxx_tamil",
       "gb_horny_jack_hindi",
-      "gb_bb_enhance_cream_hindi"
+      "gb_bb_enhance_cream_hindi",
+      "gb_be_care_cream_hindi"
     ];
     
     console.log("Schema tables:", schemaTables);
