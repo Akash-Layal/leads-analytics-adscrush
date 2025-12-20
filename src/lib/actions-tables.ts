@@ -1,4 +1,4 @@
-'use server';
+"use server";
 
 import { db as dbReadReplica } from "@/db/readreplica";
 import { db as dbWriteReplica } from "@/db/writereplica";
@@ -10,7 +10,7 @@ function parseCountResult(result: unknown): number {
   let count = 0;
   if (Array.isArray(result) && result.length > 0) {
     const dataRows = Array.isArray(result[0]) ? result[0] : result;
-    if (dataRows.length > 0 && dataRows[0] && typeof dataRows[0] === 'object' && 'count' in dataRows[0]) {
+    if (dataRows.length > 0 && dataRows[0] && typeof dataRows[0] === "object" && "count" in dataRows[0]) {
       count = Number((dataRows[0] as { count: unknown }).count) || 0;
     }
   }
@@ -22,36 +22,36 @@ export async function getAllReadReplicaTablesAction() {
   try {
     console.log("=== getAllReadReplicaTablesAction START ===");
     console.log("Getting table names from schema...");
-    
+
     // Use the schema tables directly since we have them defined
     const schemaTables = [
-      'gb_bb_maxx_hindi',
-      'gb_de_addiction_hindi', 
-      'gb_divitiz_hindi',
-      'gb_divitiz_tamil',
-      'gb_hammer-lp-test-malay',
-      'gb_herbal-thorex-gujrati',
-      'gb_herbal-thorex-hindi',
-      'gb_keto_plus_hindi',
-      'gb_knight-king-gold-tamil',
-      'gb_kub-deepam-tamil',
-      'gb_liveda-english',
-      'gb_mans-power-telugu',
-      'gb_man_care_hindi',
-      'gb_man_click_tamil',
-      'gb_men-x-malay',
-      'gb_men-x-tamil',
-      'gb_men-x-telugu',
-      'gb_power-x_hindi',
-      'gb_pwr_up_hindi',
-      'gb_pwr_up_tamil',
-      'gb_slimo_veda_gujrati',
-      'gb_spartan_hindi',
-      'gb_strong_men_hindi',
-      'gb_xeno_prost_hindi',
-      'gb_force_one_hindi',
-      'gb_nonstop_kama_hindi',
-      'gb_jonitas_hindi',
+      "gb_bb_maxx_hindi",
+      "gb_de_addiction_hindi",
+      "gb_divitiz_hindi",
+      "gb_divitiz_tamil",
+      "gb_hammer-lp-test-malay",
+      "gb_herbal-thorex-gujrati",
+      "gb_herbal-thorex-hindi",
+      "gb_keto_plus_hindi",
+      "gb_knight-king-gold-tamil",
+      "gb_kub-deepam-tamil",
+      "gb_liveda-english",
+      "gb_mans-power-telugu",
+      "gb_man_care_hindi",
+      "gb_man_click_tamil",
+      "gb_men-x-malay",
+      "gb_men-x-tamil",
+      "gb_men-x-telugu",
+      "gb_power-x_hindi",
+      "gb_pwr_up_hindi",
+      "gb_pwr_up_tamil",
+      "gb_slimo_veda_gujrati",
+      "gb_spartan_hindi",
+      "gb_strong_men_hindi",
+      "gb_xeno_prost_hindi",
+      "gb_force_one_hindi",
+      "gb_nonstop_kama_hindi",
+      "gb_jonitas_hindi",
       "gb_energy_booster_hindi",
       "gb_b_boost_hindi",
       "gb_bb_maxx_tamil",
@@ -61,14 +61,14 @@ export async function getAllReadReplicaTablesAction() {
       "gb_bold_pro_maxx_tamil",
       "gb_horny_jack_hindi",
       "gb_bb_enhance_cream_hindi",
-      "gb_be_care_cream_hindi"
+      "gb_be_care_cream_tamil",
+      "gb_be_care_cream_hindi",
     ];
-    
-    console.log("Schema tables:", schemaTables);
+
+    // console.log("Schema tables:", schemaTables);
     console.log("=== getAllReadReplicaTablesAction END (success) ===");
-    
+
     return { success: true, tables: schemaTables };
-    
   } catch (error) {
     console.error("=== getAllReadReplicaTablesAction ERROR ===", error);
     return { success: false, error: "Failed to get tables" };
@@ -84,7 +84,7 @@ export async function getAssignedTablesAction() {
       })
       .from(tableMapping);
 
-    const assignedTables = result.map(row => row.tableName);
+    const assignedTables = result.map((row) => row.tableName);
     return { success: true, assignedTables };
   } catch (error) {
     console.error("Error getting assigned tables:", error);
@@ -120,20 +120,18 @@ export async function removeTableMappingAction(tableMappingId: string) {
   try {
     console.log(`=== removeTableMappingAction START ===`);
     console.log(`Removing table mapping with ID: ${tableMappingId}`);
-    
+
     // Delete the table mapping record to allow reassignment
-    const result = await dbWriteReplica
-      .delete(tableMapping)
-      .where(sql`${tableMapping.xataId} = ${tableMappingId}`);
+    const result = await dbWriteReplica.delete(tableMapping).where(sql`${tableMapping.xataId} = ${tableMappingId}`);
 
     console.log(`Delete result:`, result);
     console.log(`=== removeTableMappingAction END (success) ===`);
-    
+
     return { success: true };
   } catch (error) {
     console.error(`=== removeTableMappingAction ERROR ===`);
     console.error(`Failed to remove table mapping ${tableMappingId}:`, error);
-    return { success: false, error: `Failed to remove table mapping: ${error instanceof Error ? error.message : 'Unknown error'}` };
+    return { success: false, error: `Failed to remove table mapping: ${error instanceof Error ? error.message : "Unknown error"}` };
   }
 }
 
@@ -142,11 +140,8 @@ export async function getAvailableTablesAction() {
   try {
     console.log("=== getAvailableTablesAction START ===");
     console.log("Getting available tables...");
-    
-    const [allTablesResult, assignedTablesResult] = await Promise.all([
-      getAllReadReplicaTablesAction(),
-      getAssignedTablesAction()
-    ]);
+
+    const [allTablesResult, assignedTablesResult] = await Promise.all([getAllReadReplicaTablesAction(), getAssignedTablesAction()]);
 
     console.log("All tables result:", allTablesResult);
     console.log("Assigned tables result:", assignedTablesResult);
@@ -158,11 +153,11 @@ export async function getAvailableTablesAction() {
 
     const allTables = allTablesResult.tables || [];
     const assignedTables = assignedTablesResult.assignedTables || [];
-    
+
     console.log("All tables:", allTables);
     console.log("Assigned tables:", assignedTables);
-    
-    const availableTables = allTables.filter(table => !assignedTables.includes(table));
+
+    const availableTables = allTables.filter((table) => !assignedTables.includes(table));
     console.log("Available tables after filtering:", availableTables);
     console.log("=== getAvailableTablesAction END ===");
 
@@ -178,40 +173,39 @@ export async function getTableCountsAction(tableNames: string[]) {
   try {
     console.log("=== getTableCountsAction START ===");
     console.log("Getting counts for tables:", tableNames);
-    
+
     if (tableNames.length === 0) {
       return { success: true, counts: [] };
     }
 
     const counts: { tableName: string; count: number }[] = [];
-    
+
     // Get count for each table
     for (const tableName of tableNames) {
       try {
         const result = await dbReadReplica.execute(sql`SELECT COUNT(*) as count FROM ${sql.identifier(tableName)}`);
         console.log(`Count result for ${tableName}:`, result);
-        
+
         let count = 0;
         if (Array.isArray(result) && result.length > 0) {
           const dataRows = Array.isArray(result[0]) ? result[0] : result;
-          if (dataRows.length > 0 && dataRows[0] && typeof dataRows[0] === 'object' && 'count' in dataRows[0]) {
+          if (dataRows.length > 0 && dataRows[0] && typeof dataRows[0] === "object" && "count" in dataRows[0]) {
             count = Number(dataRows[0].count) || 0;
           }
         }
-        
+
         counts.push({ tableName, count });
         console.log(`Table ${tableName} has ${count} records`);
-        
       } catch (tableError) {
         console.error(`Error getting count for table ${tableName}:`, tableError);
         // Add table with 0 count if there's an error
         counts.push({ tableName, count: 0 });
       }
     }
-    
+
     console.log("Final counts:", counts);
     console.log("=== getTableCountsAction END ===");
-    
+
     return { success: true, counts };
   } catch (error) {
     console.error("=== getTableCountsAction ERROR ===", error);
@@ -224,37 +218,37 @@ export async function getDailyStatsAction(tableNames: string[]) {
   try {
     console.log("=== getDailyStatsAction START ===");
     console.log("Getting daily stats for tables:", tableNames);
-    
+
     if (tableNames.length === 0) {
-      return { 
-        success: true, 
-        stats: []
+      return {
+        success: true,
+        stats: [],
       };
     }
 
     // Get current date and calculate date ranges
     const now = new Date();
-    
+
     // Today
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
-    
+
     // Yesterday
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
-    
+
     // This month
     const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    
+
     // Last month
     const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
-    console.log("Date ranges for timestamp queries:", { 
+    console.log("Date ranges for timestamp queries:", {
       today: today.toISOString(),
       tomorrow: tomorrow.toISOString(),
       yesterday: yesterday.toISOString(),
       thisMonth: thisMonth.toISOString(),
-      lastMonth: lastMonth.toISOString()
+      lastMonth: lastMonth.toISOString(),
     });
 
     const tableStats: Array<{
@@ -271,23 +265,21 @@ export async function getDailyStatsAction(tableNames: string[]) {
     for (const tableName of tableNames) {
       try {
         console.log(`=== Processing table: ${tableName} ===`);
-        
+
         // First, let's check if table has any records at all - use the same approach as getTableCountsAction
-        const totalRecordsResult = await dbReadReplica.execute(
-          sql`SELECT COUNT(*) as total FROM ${sql.identifier(tableName)}`
-        );
-        
+        const totalRecordsResult = await dbReadReplica.execute(sql`SELECT COUNT(*) as total FROM ${sql.identifier(tableName)}`);
+
         let totalRecords = 0;
         if (Array.isArray(totalRecordsResult) && totalRecordsResult.length > 0) {
           const dataRows = Array.isArray(totalRecordsResult[0]) ? totalRecordsResult[0] : totalRecordsResult;
-          if (dataRows.length > 0 && dataRows[0] && typeof dataRows[0] === 'object' && 'total' in dataRows[0]) {
+          if (dataRows.length > 0 && dataRows[0] && typeof dataRows[0] === "object" && "total" in dataRows[0]) {
             totalRecords = Number(dataRows[0].total) || 0;
           }
         }
-        
+
         console.log(`Total records in ${tableName}:`, totalRecords);
         console.log(`Raw totalRecordsResult:`, totalRecordsResult);
-        
+
         // If no records, add table with 0 stats
         if (totalRecords === 0) {
           console.log(`Table ${tableName} has no records, adding with 0 stats`);
@@ -298,34 +290,26 @@ export async function getDailyStatsAction(tableNames: string[]) {
             thisMonth: 0,
             lastMonth: 0,
             totalRecords: 0,
-            hasData: false
+            hasData: false,
           });
           continue;
         }
-        
+
         console.log(`Using timestamp queries for ${tableName}`);
-        
+
         // Execute all queries in parallel for better performance using created_at_ts timestamp
         const [todayResult, yesterdayResult, thisMonthResult, lastMonthResult] = await Promise.all([
-          dbReadReplica.execute(
-            sql`SELECT COUNT(*) as count FROM ${sql.identifier(tableName)} WHERE created_at_ts >= ${today} AND created_at_ts < ${tomorrow}`
-          ),
-          dbReadReplica.execute(
-            sql`SELECT COUNT(*) as count FROM ${sql.identifier(tableName)} WHERE created_at_ts >= ${yesterday} AND created_at_ts < ${today}`
-          ),
-          dbReadReplica.execute(
-            sql`SELECT COUNT(*) as count FROM ${sql.identifier(tableName)} WHERE created_at_ts >= ${thisMonth}`
-          ),
-          dbReadReplica.execute(
-            sql`SELECT COUNT(*) as count FROM ${sql.identifier(tableName)} WHERE created_at_ts >= ${lastMonth} AND created_at_ts < ${thisMonth}`
-          )
+          dbReadReplica.execute(sql`SELECT COUNT(*) as count FROM ${sql.identifier(tableName)} WHERE created_at_ts >= ${today} AND created_at_ts < ${tomorrow}`),
+          dbReadReplica.execute(sql`SELECT COUNT(*) as count FROM ${sql.identifier(tableName)} WHERE created_at_ts >= ${yesterday} AND created_at_ts < ${today}`),
+          dbReadReplica.execute(sql`SELECT COUNT(*) as count FROM ${sql.identifier(tableName)} WHERE created_at_ts >= ${thisMonth}`),
+          dbReadReplica.execute(sql`SELECT COUNT(*) as count FROM ${sql.identifier(tableName)} WHERE created_at_ts >= ${lastMonth} AND created_at_ts < ${thisMonth}`),
         ]);
-        
+
         // Parse results using the same logic as getTableCountsAction
         let todayCount = 0;
         if (Array.isArray(todayResult) && todayResult.length > 0) {
           const dataRows = Array.isArray(todayResult[0]) ? todayResult[0] : todayResult;
-          if (dataRows.length > 0 && dataRows[0] && typeof dataRows[0] === 'object' && 'count' in dataRows[0]) {
+          if (dataRows.length > 0 && dataRows[0] && typeof dataRows[0] === "object" && "count" in dataRows[0]) {
             todayCount = Number(dataRows[0].count) || 0;
           }
         }
@@ -333,7 +317,7 @@ export async function getDailyStatsAction(tableNames: string[]) {
         let yesterdayCount = 0;
         if (Array.isArray(yesterdayResult) && yesterdayResult.length > 0) {
           const dataRows = Array.isArray(yesterdayResult[0]) ? yesterdayResult[0] : yesterdayResult;
-          if (dataRows.length > 0 && dataRows[0] && typeof dataRows[0] === 'object' && 'count' in dataRows[0]) {
+          if (dataRows.length > 0 && dataRows[0] && typeof dataRows[0] === "object" && "count" in dataRows[0]) {
             yesterdayCount = Number(dataRows[0].count) || 0;
           }
         }
@@ -341,7 +325,7 @@ export async function getDailyStatsAction(tableNames: string[]) {
         let thisMonthCount = 0;
         if (Array.isArray(thisMonthResult) && thisMonthResult.length > 0) {
           const dataRows = Array.isArray(thisMonthResult[0]) ? thisMonthResult[0] : thisMonthResult;
-          if (dataRows.length > 0 && dataRows[0] && typeof dataRows[0] === 'object' && 'count' in dataRows[0]) {
+          if (dataRows.length > 0 && dataRows[0] && typeof dataRows[0] === "object" && "count" in dataRows[0]) {
             thisMonthCount = Number(dataRows[0].count) || 0;
           }
         }
@@ -349,14 +333,14 @@ export async function getDailyStatsAction(tableNames: string[]) {
         let lastMonthCount = 0;
         if (Array.isArray(lastMonthResult) && lastMonthResult.length > 0) {
           const dataRows = Array.isArray(lastMonthResult[0]) ? lastMonthResult[0] : lastMonthResult;
-          if (dataRows.length > 0 && dataRows[0] && typeof dataRows[0] === 'object' && 'count' in dataRows[0]) {
+          if (dataRows.length > 0 && dataRows[0] && typeof dataRows[0] === "object" && "count" in dataRows[0]) {
             lastMonthCount = Number(dataRows[0].count) || 0;
           }
         }
 
         console.log(`Table ${tableName} stats:`, { todayCount, yesterdayCount, thisMonthCount, lastMonthCount, totalRecords });
         console.log(`Raw results:`, { todayResult, yesterdayResult, thisMonthResult, lastMonthResult });
-        
+
         // Add table stats
         tableStats.push({
           tableName,
@@ -365,9 +349,8 @@ export async function getDailyStatsAction(tableNames: string[]) {
           thisMonth: thisMonthCount,
           lastMonth: lastMonthCount,
           totalRecords,
-          hasData: true
+          hasData: true,
         });
-        
       } catch (tableError) {
         console.error(`Error getting daily stats for table ${tableName}:`, tableError);
         // Add table with 0 stats if there's an error
@@ -378,14 +361,14 @@ export async function getDailyStatsAction(tableNames: string[]) {
           thisMonth: 0,
           lastMonth: 0,
           totalRecords: 0,
-          hasData: false
+          hasData: false,
         });
       }
     }
-    
+
     console.log("Final table stats:", tableStats);
     console.log("=== getDailyStatsAction END ===");
-    
+
     return { success: true, stats: tableStats };
   } catch (error) {
     console.error("=== getDailyStatsAction ERROR ===", error);
